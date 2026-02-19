@@ -1,0 +1,44 @@
+backend/
+
+backpatas/
+│
+├── app.py
+├── config.py
+├── extensions.py
+│
+├── models/
+│   ├── __init__.py
+│   ├── usuario.py
+│   ├── fundacion.py
+│   ├── perro.py
+│   ├── solicitud.py
+│   ├── formulario.py
+│   ├── mensaje.py
+│   ├── notificacion.py
+│   ├── favorito.py
+│   ├── banner.py
+│   └── adopcion.py
+│
+├── routes/
+│   ├── __init__.py
+│   ├── auth_routes.py
+│   ├── user_routes.py
+│   ├── perro_routes.py
+│   ├── solicitud_routes.py
+│   ├── admin_routes.py
+│   ├── chat_routes.py
+│   ├── report_routes.py
+│   ├── notification_routes.py
+│   └── content_routes.py
+│
+├── services/
+│   ├── __init__.py
+│   ├── knn_service.py
+│   ├── permission_service.py
+│   ├── email_service.py
+│   ├── report_service.py
+│   └── recommendation_service.py
+│
+└── utils/
+    ├── __init__.py
+    └── decorators.py
