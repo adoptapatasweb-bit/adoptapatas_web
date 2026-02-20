@@ -226,6 +226,71 @@ def editar_perro(perro_id):
     return jsonify({"msg": "Perro actualizado", "perro": perro.to_dict()}), 200
 
 
+from flask import request, jsonify
+from flask_jwt_extended import jwt_required
+from backpatas.models.perro import Perro
+from backpatas.services.knn_service import build_user_vector, knn_rank_perros
+
+@perro_bp.post("/recomendados")
+@jwt_required()
+def perros_recomendados():
+    data = request.get_json() or {}
+    form = data.get("formulario") or {}
+    top_k = int(data.get("top_k", 5))
+
+    if not isinstance(form, dict):
+        return jsonify({"msg": "Debe enviar formulario como objeto JSON"}), 400
+
+    # objeto dummy con atributos para reutilizar build_user_vector()
+    class RF:
+        pass
+
+    rf = RF()
+    rf.tamano_preferido = form.get("tamano_preferido")
+    rf.nivel_actividad_usuario = form.get("nivel_actividad_usuario")
+    rf.tolerancia_ruido = form.get("tolerancia_ruido")
+    rf.espacio_suficiente = form.get("espacio_suficiente")
+    rf.tiene_jardin = form.get("tiene_jardin")
+    rf.hay_ninos = form.get("hay_ninos")
+    rf.tiene_perros_actualmente = form.get("tiene_perros_actualmente")
+    rf.tiene_gatos_actualmente = form.get("tiene_gatos_actualmente")
+    rf.actividad_hogar = form.get("actividad_hogar")
+    rf.tolerancia_muda = form.get("tolerancia_muda")
+    rf.disposicion_entrenamiento = form.get("disposicion_entrenamiento")
+    rf.horas_solo = form.get("horas_solo")
+    rf.anios_experiencia_mascotas = form.get("anios_experiencia_mascotas")
+
+    u_vec = build_user_vector(rf)
+
+    perros_disponibles = Perro.query.filter_by(estado_id=1).all()
+    if not perros_disponibles:
+        return jsonify({"msg": "No hay perros disponibles"}), 200
+
+    knn = knn_rank_perros(u_vec, perros_disponibles, top_k=top_k, w_size=0.35)
+    topk = knn["topk"]
+
+    # map rápido
+    by_id = {p.id: p for p in perros_disponibles}
+
+    recomendados = []
+    for item in topk:
+        p = by_id.get(item["perro_id"])
+        if not p:
+            continue
+        recomendados.append({
+            "perro_id": p.id,
+            "nombre": p.nombre,
+            "tamano": p.tamano,
+            "edad": p.edad,
+            "foto_url": p.foto_url,
+            "score": item["distance"]  # menor = mejor
+        })
+
+    return jsonify({
+        "top_k": len(recomendados),
+        "recomendados": recomendados
+    }), 200
+
 @perro_bp.post("/")
 @jwt_required()
 @roles_required("admin", "fundacion")

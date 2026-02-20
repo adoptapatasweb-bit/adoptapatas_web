@@ -10,6 +10,7 @@ from backpatas.models.perro import Perro
 from backpatas.models.respuesta_formulario import RespuestaFormulario
 from backpatas.models.usuario import Usuario
 from backpatas.models.fundacion import Fundacion
+from backpatas.services.knn_service import build_user_vector, knn_rank_perros
 
 from datetime import datetime
 
@@ -95,7 +96,6 @@ def crear_solicitud_con_formulario():
         # 2) Crear respuesta_formulario (1:1)
         rf = RespuestaFormulario(solicitud_id=solicitud.id)
 
-        # Copiar SOLO las keys que existan en el modelo (evita basura)
         columnas_validas = {
             c.name for c in RespuestaFormulario.__table__.columns
             if c.name != "solicitud_id"
@@ -106,12 +106,29 @@ def crear_solicitud_con_formulario():
                 setattr(rf, k, v)
 
         db.session.add(rf)
+        db.session.flush()
 
-        # 3) Commit atómico
+        # 3) KNN (antes del commit)
+        perros_disponibles = Perro.query.filter_by(estado_id=1).all()
+        u_vec = build_user_vector(rf)
+
+        knn = knn_rank_perros(u_vec, perros_disponibles, top_k=5, w_size=0.35)
+        ranking = knn["ranking"]
+
+        rank = None
+        for idx, item in enumerate(ranking, start=1):
+            if item["perro_id"] == int(perro_id):
+                rank = idx
+                break
+
+        solicitud.resultado_knn = rank
+
+        # 4) Commit atómico
         db.session.commit()
 
         return jsonify({
             "msg": "Solicitud creada con formulario",
+            "resultado_knn": solicitud.resultado_knn,
             "solicitud": solicitud.to_dict(),
             "respuesta_formulario": rf.to_dict()
         }), 201
@@ -119,8 +136,6 @@ def crear_solicitud_con_formulario():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error creando solicitud", "error": str(e)}), 500
-
-
 # =========================================================
 # GET /solicitudes/listar
 # RF-017
