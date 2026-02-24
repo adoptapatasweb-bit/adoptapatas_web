@@ -47,6 +47,9 @@ def create_app():
     from backpatas.routes.solicitud_routes import solicitud_bp
     app.register_blueprint(solicitud_bp, url_prefix="/solicitudes")
 
+    from backpatas.routes.banner_routes import banner_bp
+    app.register_blueprint(banner_bp)
+
 
     return app
 
