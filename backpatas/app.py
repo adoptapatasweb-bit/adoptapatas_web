@@ -1,22 +1,58 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-
 from flask import Flask
+from flasgger import Swagger
+
 from backpatas.config import Config
-from backpatas.extensions import db, migrate, jwt, cors
-
-from backpatas.extensions import mail
-
+from backpatas.extensions import db, migrate, jwt, cors, mail
 
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # ---------- Swagger (Flasgger) ----------
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": "apispec_1",
+                "route": "/apispec_1.json",
+                "rule_filter": lambda rule: True,
+                "model_filter": lambda tag: True,
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/docs/",
+    }
+
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "AdoptaPatas API",
+            "version": "1.0.0",
+            "description": "Documentación Swagger de la API del proyecto Adoptapatas",
+        },
+        "securityDefinitions": {
+            "BearerAuth": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "Escribe: Bearer {tu_token}",
+            }
+        },
+    }
+
+    Swagger(app, config=swagger_config, template=swagger_template)
+    # ---------------------------------------
+
     mail.init_app(app)
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    cors.init_app(app)
 
     from backpatas.models.token_blocklist import TokenBlocklist
 
@@ -25,8 +61,6 @@ def create_app():
         jti = jwt_payload.get("jti")
         return TokenBlocklist.query.filter_by(jti=jti).first() is not None
 
-    cors.init_app(app)
-
     @app.get("/")
     def home():
         return {"mensaje": "API funcionando correctamente"}
@@ -34,7 +68,7 @@ def create_app():
     # Importa modelos para migraciones
     from backpatas.models import usuario, perro, solicitud  # noqa: F401
 
-    # Registrar blueprints (solo los que existan y NO estén vacíos)
+    # Blueprints
     from backpatas.routes.auth_routes import auth_bp
     app.register_blueprint(auth_bp, url_prefix="/auth")
 
@@ -50,8 +84,11 @@ def create_app():
     from backpatas.routes.banner_routes import banner_bp
     app.register_blueprint(banner_bp)
 
+    from backpatas.routes.user_routes import user_bp
+    app.register_blueprint(user_bp)  # si tu user_bp ya tiene url_prefix="/users"
 
     return app
+
 
 app = create_app()
 
