@@ -23,10 +23,46 @@ from flask_jwt_extended import jwt_required
 from flask import jsonify, request
 from backpatas.models.perro import Perro
 
+
 @perro_bp.patch("/<int:perro_id>/estado")
 @jwt_required()
 @roles_required("admin", "fundacion")
 def cambiar_estado_perro(perro_id):
+    """
+    Cambiar estado de un perro (admin o fundación dueña)
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: perro_id
+        required: true
+        type: integer
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - estado_id
+          properties:
+            estado_id:
+              type: integer
+              example: 1
+    responses:
+      200:
+        description: Estado actualizado
+      400:
+        description: Debe enviar estado_id
+      401:
+        description: Token inválido o ausente
+      403:
+        description: No autorizado (fundación distinta o rol no permitido)
+      404:
+        description: Perro no encontrado
+    """
 
     data = request.get_json() or {}
     nuevo_estado = data.get("estado_id")
@@ -64,6 +100,28 @@ def cambiar_estado_perro(perro_id):
 @jwt_required()
 @roles_required("admin", "fundacion")
 def eliminar_perro(perro_id):
+    """
+    Eliminar perro lógicamente (admin o fundación dueña)
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: perro_id
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Perro eliminado lógicamente (estado_id = 3)
+      401:
+        description: Token inválido o ausente
+      403:
+        description: No autorizado (fundación distinta o rol no permitido)
+      404:
+        description: Perro no encontrado
+    """
 
     perro = Perro.query.get(perro_id)
     if not perro:
@@ -94,6 +152,50 @@ def eliminar_perro(perro_id):
 @perro_bp.get("/catalogo")
 @jwt_required()
 def catalogo_perros():
+    """
+    Catálogo de perros (filtrado) - requiere JWT
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: estado_id
+        type: integer
+        required: false
+        description: Estado del perro (por defecto 1)
+      - in: query
+        name: nombre
+        type: string
+        required: false
+        description: Búsqueda parcial por nombre
+      - in: query
+        name: sexo
+        type: string
+        required: false
+      - in: query
+        name: tamano
+        type: string
+        required: false
+      - in: query
+        name: edad_min
+        type: integer
+        required: false
+      - in: query
+        name: edad_max
+        type: integer
+        required: false
+      - in: query
+        name: fundacion_id
+        type: integer
+        required: false
+    responses:
+      200:
+        description: Lista de perros según filtros
+      401:
+        description: Token inválido o ausente
+    """
 
     query = Perro.query
 
@@ -135,10 +237,30 @@ def catalogo_perros():
 
     return jsonify([p.to_dict() for p in perros]), 200
 
+
 @perro_bp.get("/mios")
 @jwt_required()
 @roles_required("fundacion")
 def mis_perros():
+    """
+    Listar perros de la fundación autenticada
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Lista de perros de la fundación
+      400:
+        description: Usuario fundación sin identificacion
+      401:
+        description: Token inválido o ausente
+      403:
+        description: Rol no permitido
+      404:
+        description: No existe fundación asociada o no encontrada
+    """
     user_id = int(get_jwt_identity())
     u = Usuario.query.get(user_id)
     if not u or not u.identificacion:
@@ -156,6 +278,30 @@ def mis_perros():
 @jwt_required()
 @roles_required("admin", "fundacion")
 def detalle_perro(perro_id):
+    """
+    Obtener detalle de un perro (admin o fundación dueña)
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: perro_id
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Detalle del perro
+      400:
+        description: Usuario fundación sin identificacion
+      401:
+        description: Token inválido o ausente
+      403:
+        description: No tienes acceso a este perro
+      404:
+        description: Perro no encontrado / fundación no encontrada
+    """
     perro = Perro.query.get(perro_id)
     if not perro:
         return jsonify({"msg": "Perro no encontrado"}), 404
@@ -181,6 +327,57 @@ def detalle_perro(perro_id):
 @jwt_required()
 @roles_required("admin", "fundacion")
 def editar_perro(perro_id):
+    """
+    Editar perro (admin o fundación dueña)
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: perro_id
+        required: true
+        type: integer
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            foto_url:
+              type: string
+            nombre:
+              type: string
+            tamano:
+              type: string
+            nivel_actividad:
+              type: string
+            edad:
+              type: integer
+            esterilizado:
+              type: boolean
+            ruido:
+              type: string
+            necesita_espacio:
+              type: boolean
+            estado_id:
+              type: integer
+            fundacion_id:
+              type: integer
+              description: Solo admin puede cambiar fundacion_id
+    responses:
+      200:
+        description: Perro actualizado
+      400:
+        description: Usuario fundación sin identificacion
+      401:
+        description: Token inválido o ausente
+      403:
+        description: No autorizado / Solo admin puede cambiar fundacion_id
+      404:
+        description: Perro no encontrado / fundación no encontrada
+    """
     data = request.get_json() or {}
 
     perro = Perro.query.get(perro_id)
@@ -189,7 +386,6 @@ def editar_perro(perro_id):
 
     rol = get_jwt().get("rol")
 
-    # Si es fundación: validar que el perro pertenezca a su fundación
     if rol == "fundacion":
         user_id = int(get_jwt_identity())
         u = Usuario.query.get(user_id)
@@ -204,7 +400,6 @@ def editar_perro(perro_id):
         if perro.fundacion_id != f.id:
             return jsonify({"msg": "No puedes editar perros de otra fundación"}), 403
 
-    # Campos editables (solo actualiza si vienen en el JSON)
     if "foto_url" in data: perro.foto_url = data["foto_url"]
     if "nombre" in data: perro.nombre = data["nombre"]
     if "tamano" in data: perro.tamano = data["tamano"]
@@ -215,7 +410,6 @@ def editar_perro(perro_id):
     if "necesita_espacio" in data: perro.necesita_espacio = data["necesita_espacio"]
     if "estado_id" in data: perro.estado_id = data["estado_id"]
 
-    # Solo admin puede cambiar fundacion_id
     if "fundacion_id" in data:
         if rol != "admin":
             return jsonify({"msg": "Solo admin puede cambiar fundacion_id"}), 403
@@ -231,9 +425,36 @@ from flask_jwt_extended import jwt_required
 from backpatas.models.perro import Perro
 from backpatas.services.knn_service import build_user_vector, knn_rank_perros
 
+
 @perro_bp.post("/recomendados")
 @jwt_required()
 def perros_recomendados():
+    """
+    Recomendar perros (KNN) según formulario
+    ---
+    tags:
+      - Recomendaciones
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            top_k:
+              type: integer
+              example: 5
+            formulario:
+              type: object
+              description: Respuestas del formulario para construir vector de usuario
+    responses:
+      200:
+        description: Lista de recomendados (top_k)
+      400:
+        description: formulario debe ser objeto JSON
+    """
     data = request.get_json() or {}
     form = data.get("formulario") or {}
     top_k = int(data.get("top_k", 5))
@@ -241,7 +462,6 @@ def perros_recomendados():
     if not isinstance(form, dict):
         return jsonify({"msg": "Debe enviar formulario como objeto JSON"}), 400
 
-    # objeto dummy con atributos para reutilizar build_user_vector()
     class RF:
         pass
 
@@ -269,7 +489,6 @@ def perros_recomendados():
     knn = knn_rank_perros(u_vec, perros_disponibles, top_k=top_k, w_size=0.35)
     topk = knn["topk"]
 
-    # map rápido
     by_id = {p.id: p for p in perros_disponibles}
 
     recomendados = []
@@ -283,7 +502,7 @@ def perros_recomendados():
             "tamano": p.tamano,
             "edad": p.edad,
             "foto_url": p.foto_url,
-            "score": item["distance"]  # menor = mejor
+            "score": item["distance"]
         })
 
     return jsonify({
@@ -291,13 +510,66 @@ def perros_recomendados():
         "recomendados": recomendados
     }), 200
 
+
 @perro_bp.post("/")
 @jwt_required()
 @roles_required("admin", "fundacion")
 def crear_perro():
+    """
+    Crear perro (admin o fundación)
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            foto_url:
+              type: string
+            nombre:
+              type: string
+            tamano:
+              type: string
+            nivel_actividad:
+              type: string
+            edad:
+              type: integer
+            esterilizado:
+              type: boolean
+            ruido:
+              type: string
+            necesita_espacio:
+              type: boolean
+            fundacion_id:
+              type: integer
+              description: Requerido si el rol es admin
+            estado_id:
+              type: integer
+          required:
+            - nombre
+            - nivel_actividad
+            - esterilizado
+            - necesita_espacio
+            - estado_id
+    responses:
+      201:
+        description: Perro registrado
+      400:
+        description: Faltan campos obligatorios / falta fundacion_id si es admin
+      401:
+        description: Token inválido o ausente
+      403:
+        description: Rol no permitido
+      404:
+        description: No existe fundación asociada
+    """
     data = request.get_json() or {}
 
-    # Campos obligatorios comunes
     nombre = data.get("nombre")
     nivel_actividad = data.get("nivel_actividad")
     esterilizado = data.get("esterilizado")
@@ -307,20 +579,16 @@ def crear_perro():
     if not nombre or nivel_actividad is None or esterilizado is None or necesita_espacio is None or not estado_id:
         return jsonify({"msg": "Faltan campos obligatorios"}), 400
 
-    # Detectar rol desde el JWT
     rol = get_jwt().get("rol")
 
-    # Determinar fundacion_id según rol
     fundacion_id = None
 
     if rol == "admin":
-        # Admin puede asignar la fundación manualmente
         fundacion_id = data.get("fundacion_id")
         if not fundacion_id:
             return jsonify({"msg": "Como admin debes enviar fundacion_id"}), 400
 
     elif rol == "fundacion":
-        # Fundación NO envía fundacion_id: se resuelve automático
         user_id = int(get_jwt_identity())
         u = Usuario.query.get(user_id)
         if not u or not u.identificacion:

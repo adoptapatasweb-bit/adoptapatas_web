@@ -49,6 +49,25 @@ ROLES_VALIDOS = {"usuario", "admin", "fundacion"}
 
 @auth_bp.post("/forgot-password")
 def forgot_password():
+    """
+    Solicitar recuperación de contraseña
+    ---
+    tags:
+      - Auth
+    parameters:
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              example: "correo@ejemplo.com"
+    responses:
+      200:
+        description: Respuesta genérica (si existe el correo, se envían instrucciones)
+    """
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
 
@@ -84,6 +103,23 @@ def forgot_password():
 
 @auth_bp.get("/reset-password")
 def reset_password_form():
+    """
+    Formulario HTML para restablecer contraseña (vía token)
+    ---
+    tags:
+      - Auth
+    parameters:
+      - in: query
+        name: token
+        required: true
+        type: string
+        description: Token de reseteo enviado por correo
+    responses:
+      200:
+        description: HTML del formulario de restablecimiento
+      400:
+        description: Token faltante, inválido o expirado
+    """
     token = request.args.get("token", "").strip()
     if not token:
         return "<h3>Token faltante.</h3>", 400
@@ -114,6 +150,45 @@ def reset_password_form():
 
 @auth_bp.post("/reset-password")
 def reset_password_submit():
+    """
+    Restablecer contraseña (acepta JSON o form-data)
+    ---
+    tags:
+      - Auth
+    parameters:
+      - in: body
+        name: body
+        required: false
+        description: Enviar JSON si Content-Type es application/json
+        schema:
+          type: object
+          properties:
+            token:
+              type: string
+            new_password:
+              type: string
+              example: "nuevaClave123"
+            confirm_password:
+              type: string
+              example: "nuevaClave123"
+      - in: formData
+        name: token
+        type: string
+        required: false
+      - in: formData
+        name: new_password
+        type: string
+        required: false
+      - in: formData
+        name: confirm_password
+        type: string
+        required: false
+    responses:
+      200:
+        description: HTML de confirmación (contraseña actualizada)
+      400:
+        description: Token faltante/ inválido/ expirado, o validación de contraseña
+    """
     if request.content_type and "application/json" in request.content_type:
         data = request.get_json(silent=True) or {}
         token = (data.get("token") or "").strip()
@@ -163,6 +238,46 @@ def reset_password_submit():
 # =========================
 @auth_bp.post("/register")
 def register_usuario():
+    """
+    Registro público de usuario
+    ---
+    tags:
+      - Auth
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - nombre
+            - email
+            - password
+          properties:
+            nombre:
+              type: string
+              example: "Juan Pérez"
+            email:
+              type: string
+              example: "juan@mail.com"
+            password:
+              type: string
+              example: "Clave123"
+            identificacion:
+              type: string
+              example: "123456789"
+            estado:
+              type: integer
+              example: 1
+              description: 1 activo, 0 inactivo
+    responses:
+      201:
+        description: Usuario creado
+      400:
+        description: Faltan campos obligatorios
+      409:
+        description: Email ya registrado
+    """
     # Obtiene los datos enviados en formato JSON
     data = request.get_json() or {}
 
@@ -213,6 +328,35 @@ def register_usuario():
 # =========================
 @auth_bp.post("/login")
 def login():
+    """
+    Iniciar sesión (JWT)
+    ---
+    tags:
+      - Auth
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            email:
+              type: string
+              example: "juan@mail.com"
+            password:
+              type: string
+              example: "Clave123"
+    responses:
+      200:
+        description: Login exitoso (access_token y refresh_token)
+      400:
+        description: Email y password obligatorios
+      401:
+        description: Credenciales inválidas
+    """
     data = request.get_json() or {}
 
     email = data.get("email")
@@ -250,6 +394,21 @@ def login():
 @auth_bp.get("/me")
 @jwt_required()  # Esta ruta requiere token válido
 def me():
+    """
+    Obtener perfil del usuario autenticado
+    ---
+    tags:
+      - Auth
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Datos del usuario autenticado
+      401:
+        description: Token faltante o inválido
+      404:
+        description: Usuario no encontrado
+    """
     # Obtiene el ID del usuario desde el token
     user_id = get_jwt_identity()
 
@@ -269,6 +428,21 @@ def me():
 @auth_bp.get("/admin-test")
 @roles_required("admin")  # Solo usuarios con rol "admin"
 def admin_test():
+    """
+    Endpoint de prueba para rol admin
+    ---
+    tags:
+      - Auth
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Acceso permitido solo para admin
+      401:
+        description: Token faltante o inválido
+      403:
+        description: Acceso denegado (no es admin)
+    """
     return jsonify({"msg": "Acceso permitido solo para admin"}), 200
 
 
@@ -277,6 +451,53 @@ def admin_test():
 # =========================
 @auth_bp.post("/register-admin")
 def register_admin():
+    """
+    Registro de administrador (requiere admin_secret)
+    ---
+    tags:
+      - Auth
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - nombre
+            - email
+            - password
+            - admin_secret
+          properties:
+            nombre:
+              type: string
+              example: "Admin Uno"
+            email:
+              type: string
+              example: "admin@mail.com"
+            password:
+              type: string
+              example: "Clave123"
+            identificacion:
+              type: string
+              example: "999999"
+            estado:
+              type: integer
+              example: 1
+            admin_secret:
+              type: string
+              example: "MI_SECRETO"
+    responses:
+      201:
+        description: Admin creado
+      400:
+        description: Faltan campos obligatorios
+      403:
+        description: Clave admin inválida
+      409:
+        description: Email ya registrado
+      500:
+        description: ADMIN_REGISTRATION_SECRET no configurado
+    """
     data = request.get_json() or {}
 
     nombre = data.get("nombre")
@@ -329,6 +550,19 @@ def register_admin():
 @auth_bp.post("/logout")
 @jwt_required()
 def logout():
+    """
+    Cerrar sesión (revocar token actual)
+    ---
+    tags:
+      - Auth
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Sesión cerrada. Token revocado.
+      401:
+        description: Token faltante o inválido
+    """
     jwt_payload = get_jwt()
     jti = jwt_payload.get("jti")
 
@@ -341,6 +575,21 @@ def logout():
 @auth_bp.post("/refresh")
 @jwt_required(refresh=True)
 def refresh():
+    """
+    Refrescar access token (requiere refresh token)
+    ---
+    tags:
+      - Auth
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Nuevo access_token generado
+      401:
+        description: Refresh token faltante o inválido
+      404:
+        description: Usuario no encontrado
+    """
     # Obtiene el ID del usuario desde el refresh token
     user_id = get_jwt_identity()
 

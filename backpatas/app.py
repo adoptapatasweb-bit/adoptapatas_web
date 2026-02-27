@@ -17,8 +17,8 @@ def create_app():
         "headers": [],
         "specs": [
             {
-                "endpoint": "apispec_1",
-                "route": "/apispec_1.json",
+                "endpoint": "adoptapatas_spec",
+                "route": "/api-adoptapatas.json",
                 "rule_filter": lambda rule: True,
                 "model_filter": lambda tag: True,
             }
@@ -32,8 +32,8 @@ def create_app():
         "swagger": "2.0",
         "info": {
             "title": "AdoptaPatas API",
-            "version": "1.0.0",
-            "description": "Documentación Swagger de la API del proyecto Adoptapatas",
+            "version": "4.0.0",
+            "description": "Especificación técnica basada en OpenAPI (Swagger) de la API REST del sistema AdoptaPatas. Esta documentación describe formalmente los servicios expuestos por el backend, incluyendo mecanismos de autenticación y autorización mediante JWT, control de acceso por roles (usuario, fundación y administrador), gestión integral de entidades del dominio (usuarios, fundaciones, perros, solicitudes de adopción y contenido), así como la integración de un motor de recomendación basado en K-Nearest Neighbors (KNN). La presente especificación define el contrato API, los esquemas de datos, parámetros, estructuras de respuesta y códigos de estado HTTP, garantizando interoperabilidad con el frontend, trazabilidad funcional de los requisitos y soporte para mantenimiento, escalabilidad y evolución del sistema.",
         },
         "securityDefinitions": {
             "BearerAuth": {

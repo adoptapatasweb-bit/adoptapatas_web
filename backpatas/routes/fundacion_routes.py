@@ -12,6 +12,62 @@ fundacion_bp = Blueprint("fundacion", __name__)
 @jwt_required()
 @roles_required("admin")
 def crear_fundacion_con_usuario():
+    """
+    Crear fundación junto con su usuario (solo admin)
+    ---
+    tags:
+      - Fundaciones
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - identificacion
+            - nombre_fundacion
+            - contacto
+            - nombre_usuario
+            - email_usuario
+            - password
+          properties:
+            identificacion:
+              type: string
+              example: "900123456"
+            nombre_fundacion:
+              type: string
+              example: "Fundación Patitas Felices"
+            logo_url:
+              type: string
+              example: "https://miapp.com/logo.png"
+            contacto:
+              type: string
+              example: "contacto@fundacion.com"
+            nombre_usuario:
+              type: string
+              example: "Responsable Fundación"
+            email_usuario:
+              type: string
+              example: "fundacion@login.com"
+            password:
+              type: string
+              example: "Clave123"
+    responses:
+      201:
+        description: Fundación y usuario creados correctamente
+      400:
+        description: Faltan campos obligatorios
+      401:
+        description: Token inválido o ausente
+      403:
+        description: Solo admin puede crear fundaciones
+      409:
+        description: Email o identificación ya registrados
+      500:
+        description: Error interno al crear fundación/usuario
+    """
     data = request.get_json() or {}
 
     # ---- Datos de fundación ----
@@ -36,7 +92,7 @@ def crear_fundacion_con_usuario():
     if Usuario.query.filter_by(email=email_usuario).first():
         return jsonify({"msg": "El email de usuario ya está registrado"}), 409
 
-    # Evitar duplicados: fundación por identificacion (si aplica en tu negocio)
+    # Evitar duplicados: fundación por identificacion
     if Fundacion.query.filter_by(identificacion=identificacion).first():
         return jsonify({"msg": "Ya existe una fundación con esa identificación"}), 409
 
@@ -51,9 +107,9 @@ def crear_fundacion_con_usuario():
         )
         u.set_password(password_usuario)
         db.session.add(u)
-        db.session.flush()  # fuerza INSERT del usuario antes de crear fundación
+        db.session.flush()
 
-        # 2) Crear fundación (vinculada por identificacion/contacto)
+        # 2) Crear fundación
         f = Fundacion(
             identificacion=identificacion,
             logo_url=logo_url,

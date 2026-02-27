@@ -12,13 +12,24 @@ banner_bp = Blueprint("banners", __name__, url_prefix="/banners")
 
 
 
-
-
 # ✅ Público: banners activos
-# - si envías ?fundacion_id=3 -> retorna globales (NULL) + los de esa fundación
-# - si no envías fundacion_id -> retorna solo globales
 @banner_bp.get("/")
 def listar_banners_publicos():
+    """
+    Listar banners públicos activos
+    ---
+    tags:
+      - Contenido - Banners
+    parameters:
+      - in: query
+        name: fundacion_id
+        type: integer
+        required: false
+        description: Si se envía, retorna banners globales + los de esa fundación
+    responses:
+      200:
+        description: Lista de banners activos
+    """
     fundacion_id = request.args.get("fundacion_id", type=int)
 
     q = Banner.query.filter(Banner.activo == True)
@@ -31,11 +42,29 @@ def listar_banners_publicos():
     banners = q.order_by(Banner.orden.asc().nullslast(), Banner.id.desc()).all()
     return jsonify([b.to_dict() for b in banners]), 200
 
+
 from backpatas.routes.solicitud_routes import _get_fundacion_from_user
-# ✅ Listar para panel (admin ve todo; fundación ve lo suyo)
+
+
+# ✅ Listar para panel
 @banner_bp.get("/listar")
 @jwt_required()
 def listar_banners_panel():
+    """
+    Listar banners para panel administrativo
+    ---
+    tags:
+      - Contenido - Banners
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Lista de banners según rol
+      403:
+        description: Rol no permitido
+      404:
+        description: Fundación no encontrada
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
 
@@ -59,10 +88,52 @@ def listar_banners_panel():
     return jsonify({"msg": "Rol no permitido", "rol": rol}), 403
 
 
-# ✅ Crear banner (admin y fundación) + orden automático / validación de repetidos
+# ✅ Crear banner
 @banner_bp.post("/crear")
 @jwt_required()
 def crear_banner():
+    """
+    Crear nuevo banner
+    ---
+    tags:
+      - Contenido - Banners
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - titulo
+          properties:
+            titulo:
+              type: string
+              example: "Gran jornada de adopción"
+            descripcion:
+              type: string
+            imagen_url:
+              type: string
+            activo:
+              type: boolean
+              example: true
+            orden:
+              type: integer
+              example: 1
+            fundacion_id:
+              type: integer
+              example: 2
+    responses:
+      201:
+        description: Banner creado correctamente
+      400:
+        description: Validación incorrecta
+      403:
+        description: Rol no permitido
+      404:
+        description: Fundación no encontrada
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
     data = request.get_json() or {}
@@ -71,7 +142,6 @@ def crear_banner():
     if not titulo:
         return jsonify({"msg": "titulo es obligatorio"}), 400
 
-    # Asignación de fundacion_id según rol
     if rol == "fundacion":
         fundacion = _get_fundacion_from_user(user_id)
         if not fundacion:
@@ -79,10 +149,8 @@ def crear_banner():
         fundacion_id = fundacion.id
 
     elif rol == "admin":
-        # Admin puede crear global (NULL) o asignar a fundación
         fundacion_id = data.get("fundacion_id", None)
 
-        # Si manda fundacion_id, validamos que exista
         if fundacion_id is not None:
             f = Fundacion.query.get(fundacion_id)
             if not f:
@@ -91,13 +159,9 @@ def crear_banner():
     else:
         return jsonify({"msg": "Rol no permitido", "rol": rol}), 403
 
-    # =============================
-    # LÓGICA DE ORDEN INTELIGENTE
-    # =============================
     orden = data.get("orden")
 
     if orden is None:
-        # Si no envían orden → lo ponemos al final del grupo (global o por fundación)
         max_orden = (
             db.session.query(db.func.max(Banner.orden))
             .filter(Banner.fundacion_id == fundacion_id)
@@ -105,7 +169,6 @@ def crear_banner():
         )
         orden = (max_orden or 0) + 1
     else:
-        # Si envían orden → validamos que no exista repetido dentro del grupo
         existe = Banner.query.filter_by(
             fundacion_id=fundacion_id,
             orden=orden
@@ -128,10 +191,49 @@ def crear_banner():
     db.session.commit()
     return jsonify(banner.to_dict()), 201
 
-# ✅ Editar banner (admin todo; fundación solo los suyos)
+
+# ✅ Editar banner
 @banner_bp.patch("/<int:banner_id>/editar")
 @jwt_required()
 def editar_banner(banner_id):
+    """
+    Editar banner existente
+    ---
+    tags:
+      - Contenido - Banners
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: banner_id
+        required: true
+        type: integer
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            titulo:
+              type: string
+            descripcion:
+              type: string
+            imagen_url:
+              type: string
+            activo:
+              type: boolean
+            orden:
+              type: integer
+            fundacion_id:
+              type: integer
+    responses:
+      200:
+        description: Banner actualizado
+      403:
+        description: No autorizado
+      404:
+        description: Banner no encontrado
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
     data = request.get_json() or {}
@@ -150,7 +252,6 @@ def editar_banner(banner_id):
     elif rol != "admin":
         return jsonify({"msg": "Rol no permitido", "rol": rol}), 403
 
-    # Campos editables
     if "titulo" in data:
         banner.titulo = (data.get("titulo") or "").strip()
     if "descripcion" in data:
@@ -162,7 +263,6 @@ def editar_banner(banner_id):
     if "orden" in data:
         banner.orden = int(data.get("orden")) if data.get("orden") is not None else None
 
-    # Solo admin puede reasignar o volver global
     if rol == "admin" and "fundacion_id" in data:
         new_fid = data.get("fundacion_id", None)
         if new_fid is not None:
@@ -178,10 +278,30 @@ def editar_banner(banner_id):
     return jsonify(banner.to_dict()), 200
 
 
-# ✅ Toggle activo (admin/fundación con permisos)
+# ✅ Toggle activo
 @banner_bp.patch("/<int:banner_id>/toggle")
 @jwt_required()
 def toggle_banner(banner_id):
+    """
+    Cambiar estado activo del banner
+    ---
+    tags:
+      - Contenido - Banners
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: banner_id
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Estado actualizado
+      403:
+        description: No autorizado
+      404:
+        description: Banner no encontrado
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
 
@@ -204,10 +324,30 @@ def toggle_banner(banner_id):
     return jsonify({"msg": "Estado actualizado", "activo": banner.activo, "banner": banner.to_dict()}), 200
 
 
-# ✅ Eliminar lógico: desactivar
+# ✅ Eliminar lógico
 @banner_bp.delete("/<int:banner_id>/eliminar")
 @jwt_required()
 def eliminar_banner(banner_id):
+    """
+    Eliminar lógico (desactivar) banner
+    ---
+    tags:
+      - Contenido - Banners
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: banner_id
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Banner desactivado
+      403:
+        description: No autorizado
+      404:
+        description: Banner no encontrado
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
 

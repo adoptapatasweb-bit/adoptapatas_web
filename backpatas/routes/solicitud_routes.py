@@ -34,13 +34,18 @@ def _get_fundacion_from_user(user_id: int):
     return Fundacion.query.filter_by(identificacion=u.identificacion).first()
 
 
-
-
-
-
 #TEST DE SMTP
 @solicitud_bp.get("/test-email")
 def test_email():
+    """
+    Enviar correo de prueba (SMTP)
+    ---
+    tags:
+      - Solicitudes
+    responses:
+      200:
+        description: Correo enviado (si no hubo error)
+    """
     send_email(
         to="erika222.cftr@gmail.com",
         subject="Prueba AdoptaPatas",
@@ -57,6 +62,45 @@ def test_email():
 @jwt_required()
 @roles_required("usuario")
 def crear_solicitud_con_formulario():
+    """
+    Crear solicitud con formulario (solo usuario)
+    ---
+    tags:
+      - Solicitudes
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - perro_id
+            - formulario
+          properties:
+            perro_id:
+              type: integer
+              example: 10
+            formulario:
+              type: object
+              description: Objeto con respuestas del formulario (campos de RespuestaFormulario)
+    responses:
+      201:
+        description: Solicitud creada con formulario + resultado_knn
+      400:
+        description: Validación (perro_id faltante / perro no disponible / formulario inválido)
+      401:
+        description: Token inválido o ausente
+      403:
+        description: Rol no permitido
+      404:
+        description: Perro no encontrado
+      409:
+        description: Ya existe una solicitud para este perro
+      500:
+        description: Error creando solicitud
+    """
     data = request.get_json() or {}
 
     perro_id = data.get("perro_id")
@@ -136,6 +180,8 @@ def crear_solicitud_con_formulario():
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error creando solicitud", "error": str(e)}), 500
+
+
 # =========================================================
 # GET /solicitudes/listar
 # RF-017
@@ -143,6 +189,23 @@ def crear_solicitud_con_formulario():
 @solicitud_bp.get("/listar")
 @jwt_required()
 def listar_solicitudes():
+    """
+    Listar solicitudes según rol (usuario/admin/fundación)
+    ---
+    tags:
+      - Solicitudes
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Lista de solicitudes
+      401:
+        description: Token inválido o ausente
+      403:
+        description: Rol no permitido
+      404:
+        description: Fundación no encontrada para este usuario
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
 
@@ -176,8 +239,25 @@ def listar_solicitudes():
 # RF-018
 # =========================================================
 from datetime import datetime
+
 @solicitud_bp.get("/test-aprobacion-email/<int:solicitud_id>")
 def test_aprobacion_email(solicitud_id):
+    """
+    Enviar correo de prueba de aprobación (debug)
+    ---
+    tags:
+      - Solicitudes
+    parameters:
+      - in: path
+        name: solicitud_id
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Correo de prueba enviado
+      404:
+        description: Solicitud no encontrada
+    """
 
     solicitud = Solicitud.query.get(solicitud_id)
     if not solicitud:
@@ -206,11 +286,48 @@ from datetime import datetime
 from sqlalchemy import and_
 
 
-
 @solicitud_bp.patch("/<int:solicitud_id>/aprobar")
 @jwt_required()
 @roles_required("admin", "fundacion")
 def aprobar_solicitud(solicitud_id):
+    """
+    Aprobar solicitud (admin o fundación dueña del perro)
+    - Cambia estado a APROBADA
+    - Rechaza automáticamente otras solicitudes pendientes del mismo perro
+    - Envía correos al aprobado y a los rechazados automáticos
+    ---
+    tags:
+      - Solicitudes
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: solicitud_id
+        required: true
+        type: integer
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            motivo:
+              type: string
+              example: "Cumple requisitos"
+    responses:
+      200:
+        description: Solicitud aprobada y otras rechazadas automáticamente
+      401:
+        description: Token inválido o ausente
+      403:
+        description: No autorizado (fundación distinta o rol no permitido)
+      404:
+        description: Solicitud no encontrada
+      409:
+        description: Solo solicitudes pendientes pueden aprobarse
+      500:
+        description: Error aprobando solicitud
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
 
@@ -260,18 +377,10 @@ def aprobar_solicitud(solicitud_id):
 
         db.session.commit()
 
-        # -------------------------
-        # Envío de correos (no afecta la transacción ya confirmada)
-        # -------------------------
-        # Email al aprobado
-        # -------------------------
-        # Envío de correos (no afecta la transacción ya confirmada)
-        # -------------------------
         try:
             perro = Perro.query.get(solicitud.perro_id)
             nombre_perro = perro.nombre if perro else f"ID {solicitud.perro_id}"
 
-            # ✅ Email al aprobado (solo una vez)
             aprobado_user = Usuario.query.get(solicitud.usuario_id)
             if aprobado_user and aprobado_user.email:
                 send_email(
@@ -285,7 +394,6 @@ def aprobar_solicitud(solicitud_id):
                     )
                 )
 
-            # ✅ Email a los rechazados automáticos (con nombre del perro)
             for s in otras_pendientes:
                 u = Usuario.query.get(s.usuario_id)
                 if u and u.email:
@@ -313,6 +421,8 @@ def aprobar_solicitud(solicitud_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error aprobando solicitud", "error": str(e)}), 500
+
+
 # =========================================================
 # PATCH /solicitudes/<id>/rechazar
 # RF-019
@@ -323,6 +433,41 @@ from datetime import datetime
 @jwt_required()
 @roles_required("admin", "fundacion")
 def rechazar_solicitud(solicitud_id):
+    """
+    Rechazar solicitud (admin o fundación dueña del perro)
+    ---
+    tags:
+      - Solicitudes
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: solicitud_id
+        required: true
+        type: integer
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            motivo:
+              type: string
+              example: "No cumple requisitos"
+    responses:
+      200:
+        description: Solicitud rechazada correctamente
+      401:
+        description: Token inválido o ausente
+      403:
+        description: No autorizado (fundación distinta o rol no permitido)
+      404:
+        description: Solicitud no encontrada
+      409:
+        description: Solo solicitudes pendientes pueden rechazarse
+      500:
+        description: Error rechazando solicitud
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
 
@@ -330,11 +475,9 @@ def rechazar_solicitud(solicitud_id):
     if not solicitud:
         return jsonify({"msg": "Solicitud no encontrada"}), 404
 
-    # ✅ Validar pendiente antes de decidir
     if solicitud.estado_id != ESTADO_SOL_PENDIENTE:
         return jsonify({"msg": "Solo solicitudes pendientes pueden rechazarse"}), 409
 
-    # ✅ Si es fundación: validar que el perro pertenece a su fundación
     if rol == "fundacion":
         fundacion = _get_fundacion_from_user(user_id)
         if not fundacion:
@@ -344,12 +487,10 @@ def rechazar_solicitud(solicitud_id):
         if not perro or perro.fundacion_id != fundacion.id:
             return jsonify({"msg": "No autorizado: solicitud no pertenece a tu fundación"}), 403
 
-    # ✅ Leer motivo (opcional)
     data = request.get_json() or {}
     motivo = data.get("motivo")
 
     try:
-        # ✅ Set campos de decisión
         solicitud.estado_id = ESTADO_SOL_RECHAZADA
         solicitud.fecha_decision = datetime.utcnow()
         solicitud.decidido_por_usuario_id = user_id
@@ -357,7 +498,6 @@ def rechazar_solicitud(solicitud_id):
 
         db.session.commit()
 
-        # ✅ Enviar correo al usuario que creó la solicitud
         u = Usuario.query.get(solicitud.usuario_id)
         perro = Perro.query.get(solicitud.perro_id)
         nombre_perro = perro.nombre if perro else f"ID {solicitud.perro_id}"
@@ -383,14 +523,33 @@ def rechazar_solicitud(solicitud_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error rechazando solicitud", "error": str(e)}), 500
+
+
 # =========================================================
 # GET /solicitudes/historial
 # RF-020
-# Historial = solicitudes finalizadas (aprobadas/rechazadas)
 # =========================================================
 @solicitud_bp.get("/historial")
 @jwt_required()
 def historial_solicitudes():
+    """
+    Historial de solicitudes finalizadas (aprobadas/rechazadas)
+    - Usuario: solo las suyas
+    - Fundación: las asociadas a sus perros
+    - Admin: todas
+    ---
+    tags:
+      - Solicitudes
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Lista de solicitudes finalizadas
+      401:
+        description: Token inválido o ausente
+      403:
+        description: Rol no permitido / fundación no encontrada
+    """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
 

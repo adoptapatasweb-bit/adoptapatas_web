@@ -28,13 +28,13 @@ def listar_usuarios():
     parameters:
       - in: query
         name: estado
-        schema:
-          type: integer
+        type: integer
+        required: false
         description: Filtrar por estado (1 = activo, 0 = inactivo)
       - in: query
         name: q
-        schema:
-          type: string
+        type: string
+        required: false
         description: Buscar por nombre o email
     responses:
       200:
@@ -79,8 +79,7 @@ def obtener_usuario(usuario_id):
       - in: path
         name: usuario_id
         required: true
-        schema:
-          type: integer
+        type: integer
     responses:
       200:
         description: Datos del usuario
@@ -111,25 +110,25 @@ def actualizar_usuario(usuario_id):
       - in: path
         name: usuario_id
         required: true
+        type: integer
+      - in: body
+        name: body
+        required: true
         schema:
-          type: integer
-    requestBody:
-      required: true
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              nombre:
-                type: string
-              identificacion:
-                type: string
-              estado:
-                type: integer
-                example: 1
+          type: object
+          properties:
+            nombre:
+              type: string
+            identificacion:
+              type: string
+            estado:
+              type: integer
+              example: 1
     responses:
       200:
         description: Usuario actualizado correctamente
+      400:
+        description: No se enviaron datos
       404:
         description: Usuario no encontrado
     """
@@ -176,8 +175,7 @@ def eliminar_usuario(usuario_id):
       - in: path
         name: usuario_id
         required: true
-        schema:
-          type: integer
+        type: integer
     responses:
       200:
         description: Usuario desactivado correctamente
