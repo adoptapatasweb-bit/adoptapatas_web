@@ -153,7 +153,7 @@ def eliminar_perro(perro_id):
 @jwt_required()
 def catalogo_perros():
     """
-    Catálogo de perros (filtrado) - requiere JWT
+    Catálogo de perros General o Filtrado  - requiere JWT
     ---
     tags:
       - Perros

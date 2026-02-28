@@ -46,6 +46,114 @@ auth_bp = Blueprint("auth", __name__)
 # (Actualmente no se usa directamente, pero documenta los roles permitidos)
 ROLES_VALIDOS = {"usuario", "admin", "fundacion"}
 
+from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from backpatas.extensions import db
+from backpatas.models.usuario import Usuario
+
+
+@auth_bp.patch("/me")
+@jwt_required()
+def actualizar_mi_perfil():
+    """
+    Actualizar perfil del usuario autenticado
+    ---
+    tags:
+      - Autenticación
+
+    security:
+      - BearerAuth: []
+
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nombre:
+              type: string
+              example: "Erika García"
+            identificacion:
+              type: string
+              example: "123456789"
+            password:
+              type: string
+              example: "NuevaClave123"
+          additionalProperties: false
+
+    responses:
+      200:
+        description: Perfil actualizado correctamente
+        schema:
+          type: object
+          properties:
+            msg:
+              type: string
+              example: Perfil actualizado correctamente
+            usuario:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                identificacion:
+                  type: string
+                  example: "123456789"
+                nombre:
+                  type: string
+                  example: "Erika García"
+                email:
+                  type: string
+                  example: "erika@email.com"
+                rol:
+                  type: string
+                  example: usuario
+                estado:
+                  type: integer
+                  example: 1
+
+      400:
+        description: Intento de modificar campos no permitidos o validación incorrecta
+
+      404:
+        description: Usuario no encontrado
+    """
+
+    user_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(user_id)
+
+    if not usuario or usuario.estado == 0:
+        return jsonify({"msg": "Usuario no encontrado"}), 404
+
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"msg": "No se enviaron datos"}), 400
+
+    # ❌ Bloqueo de campos restringidos
+    if "rol" in data or "email" in data:
+        return jsonify({"msg": "No se permite modificar rol ni email"}), 400
+
+    # ✅ Campos permitidos
+    if "nombre" in data:
+        usuario.nombre = data["nombre"]
+
+    if "identificacion" in data:
+        usuario.identificacion = data["identificacion"]
+
+    if "password" in data:
+        if len(data["password"]) < 6:
+            return jsonify({"msg": "La contraseña debe tener al menos 6 caracteres"}), 400
+        usuario.set_password(data["password"])
+
+    db.session.commit()
+
+    return jsonify({
+        "msg": "Perfil actualizado correctamente",
+        "usuario": usuario.to_dict()
+    }), 200
+
 
 @auth_bp.post("/forgot-password")
 def forgot_password():

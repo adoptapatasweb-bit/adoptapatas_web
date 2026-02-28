@@ -22,7 +22,7 @@ def listar_usuarios():
     Listar usuarios (Admin)
     ---
     tags:
-      - Admin - Usuarios
+      - Administracion - Usuarios
     security:
       - BearerAuth: []
     parameters:
@@ -72,7 +72,7 @@ def obtener_usuario(usuario_id):
     Obtener detalle de usuario
     ---
     tags:
-      - Admin - Usuarios
+      - Administracion - Usuarios
     security:
       - BearerAuth: []
     parameters:
@@ -103,7 +103,7 @@ def actualizar_usuario(usuario_id):
     Actualizar usuario (sin cambiar rol)
     ---
     tags:
-      - Admin - Usuarios
+      - Administracion - Usuarios
     security:
       - BearerAuth: []
     parameters:
@@ -168,7 +168,7 @@ def eliminar_usuario(usuario_id):
     Desactivar usuario (eliminación lógica)
     ---
     tags:
-      - Admin - Usuarios
+      - Administracion - Usuarios
     security:
       - BearerAuth: []
     parameters:

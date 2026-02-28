@@ -31,19 +31,59 @@ def create_app():
     swagger_template = {
         "swagger": "2.0",
         "info": {
-            "title": "AdoptaPatas API",
+            "title": "AdoptaPatas - API REST",
             "version": "4.0.0",
-            "description": "Especificación técnica basada en OpenAPI (Swagger) de la API REST del sistema AdoptaPatas. Esta documentación describe formalmente los servicios expuestos por el backend, incluyendo mecanismos de autenticación y autorización mediante JWT, control de acceso por roles (usuario, fundación y administrador), gestión integral de entidades del dominio (usuarios, fundaciones, perros, solicitudes de adopción y contenido), así como la integración de un motor de recomendación basado en K-Nearest Neighbors (KNN). La presente especificación define el contrato API, los esquemas de datos, parámetros, estructuras de respuesta y códigos de estado HTTP, garantizando interoperabilidad con el frontend, trazabilidad funcional de los requisitos y soporte para mantenimiento, escalabilidad y evolución del sistema.",
+            "description": (
+                "Especificación técnica formal de la API REST del sistema AdoptaPatas. "
+                "Esta documentación describe los servicios expuestos por el backend "
+                "implementado en Flask, incluyendo autenticación basada en JSON Web Tokens (JWT), "
+                "control de acceso por roles (usuario, fundación y administrador), "
+                "gestión de entidades del dominio (usuarios, fundaciones, perros, solicitudes de adopción "
+                "y contenido dinámico), así como la integración de un motor de recomendación "
+                "inteligente basado en el algoritmo K-Nearest Neighbors (KNN). "
+                "La presente especificación define el contrato API, estructuras de datos, "
+                "parámetros, códigos de estado HTTP y mecanismos de seguridad, garantizando "
+                "interoperabilidad con el frontend, trazabilidad de requisitos funcionales "
+                "y soporte para mantenimiento, escalabilidad y evolución del sistema."
+            ),
+            "contact": {
+                "name": "Proyecto de Grado - Ingeniería de Sistemas y computacion",
+                "email": "Cftriana@ucundinamarca.edu.co",
+                "url": "https://www.ucundinamarca.edu.co/"
+            },
+            "license": {
+                "name": "Uso Academico para Tesis",
+            }
         },
+
+        "host": "localhost:5000",
+        "basePath": "/",
+        "schemes": ["http"],
+
         "securityDefinitions": {
             "BearerAuth": {
                 "type": "apiKey",
                 "name": "Authorization",
                 "in": "header",
-                "description": "Escribe: Bearer {tu_token}",
+                "description": (
+                    "Mecanismo de autenticación basado en JSON Web Tokens (JWT). "
+                    "Para acceder a los endpoints protegidos, el cliente debe incluir "
+                    "en el encabezado HTTP 'Authorization' un token válido utilizando "
+                    "el formato: Bearer <access_token>. "
+                    "Este mecanismo permite autenticación stateless y control de "
+                    "autorización basado en roles definidos en el sistema."
+                )
             }
         },
+
+        "security": [
+            {
+                "BearerAuth": []
+            }
+        ]
     }
+
+
 
     Swagger(app, config=swagger_config, template=swagger_template)
     # ---------------------------------------
