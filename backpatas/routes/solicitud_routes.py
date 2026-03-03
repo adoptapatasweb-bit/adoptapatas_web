@@ -285,6 +285,7 @@ def test_aprobacion_email(solicitud_id):
 from datetime import datetime
 from sqlalchemy import and_
 
+from backpatas.models.adopcion import Adopcion
 
 @solicitud_bp.patch("/<int:solicitud_id>/aprobar")
 @jwt_required()
@@ -375,6 +376,26 @@ def aprobar_solicitud(solicitud_id):
             s.decidido_por_usuario_id = user_id
             s.motivo_decision = motivo_auto
 
+        # 3) Registrar adopción (solo una por perro)
+        ya_existe = Adopcion.query.filter_by(perro_id=solicitud.perro_id).first()
+        if ya_existe:
+            db.session.rollback()
+            return jsonify({
+                "msg": "Este perro ya tiene una adopción registrada.",
+                "adopcion_existente": ya_existe.to_dict()
+            }), 409
+
+        perro = Perro.query.get(solicitud.perro_id)
+
+        adopcion = Adopcion(
+            solicitud_id=solicitud.id,
+            perro_id=solicitud.perro_id,
+            usuario_id=solicitud.usuario_id,
+            fundacion_id=perro.fundacion_id,
+            observaciones=motivo
+        )
+        db.session.add(adopcion)
+
         db.session.commit()
 
         try:
@@ -421,8 +442,6 @@ def aprobar_solicitud(solicitud_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error aprobando solicitud", "error": str(e)}), 500
-
-
 # =========================================================
 # PATCH /solicitudes/<id>/rechazar
 # RF-019
@@ -576,3 +595,47 @@ def historial_solicitudes():
 
     solicitudes = q.order_by(Solicitud.id.desc()).all()
     return jsonify([s.to_dict() for s in solicitudes]), 200
+from flask import jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from backpatas.models.solicitud import Solicitud
+from backpatas.models.respuesta_formulario import RespuestaFormulario
+
+
+@solicitud_bp.get("/precarga-formulario")
+@jwt_required()
+def precargar_formulario():
+    """
+    Obtener último formulario del usuario autenticado
+    ---
+    tags:
+      - Solicitudes
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Último formulario encontrado
+      404:
+        description: No existen formularios previos
+    """
+
+    user_id = int(get_jwt_identity())
+
+    # Última solicitud del usuario (la más reciente por ID)
+    ultima_solicitud = (
+        Solicitud.query
+        .filter_by(usuario_id=user_id)
+        .order_by(Solicitud.id.desc())
+        .first()
+    )
+
+    if not ultima_solicitud:
+        return jsonify({"msg": "No existen formularios previos"}), 404
+
+    formulario = RespuestaFormulario.query.filter_by(
+        solicitud_id=ultima_solicitud.id
+    ).first()
+
+    if not formulario:
+        return jsonify({"msg": "Formulario no encontrado"}), 404
+
+    return jsonify(formulario.to_dict()), 200

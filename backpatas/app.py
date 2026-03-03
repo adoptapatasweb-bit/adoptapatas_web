@@ -124,6 +124,12 @@ def create_app():
     from backpatas.routes.banner_routes import banner_bp
     app.register_blueprint(banner_bp)
 
+    from backpatas.routes.disponibilidad_routes import disponibilidad_bp
+    app.register_blueprint(disponibilidad_bp)
+
+    from backpatas.routes.admin_routes import admin_bp
+    app.register_blueprint(admin_bp)
+
     from backpatas.routes.user_routes import user_bp
     app.register_blueprint(user_bp)  # si tu user_bp ya tiene url_prefix="/users"
 

@@ -59,7 +59,7 @@ def actualizar_mi_perfil():
     Actualizar perfil del usuario autenticado
     ---
     tags:
-      - Autenticación
+      - administracion - usuario
 
     security:
       - BearerAuth: []
@@ -350,7 +350,7 @@ def register_usuario():
     Registro público de usuario
     ---
     tags:
-      - Auth
+      - administracion - usuario
     parameters:
       - in: body
         name: body
@@ -506,7 +506,7 @@ def me():
     Obtener perfil del usuario autenticado
     ---
     tags:
-      - Auth
+      - administracion - usuario
     security:
       - BearerAuth: []
     responses:
@@ -713,3 +713,102 @@ def refresh():
     )
 
     return jsonify({"access_token": new_access_token}), 200
+
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
+from sqlalchemy import func
+
+from backpatas.extensions import db
+from backpatas.utils.decorators import roles_required
+from backpatas.models.usuario import Usuario
+from backpatas.models.fundacion import Fundacion
+from backpatas.models.perro import Perro
+from backpatas.models.solicitud import Solicitud
+
+# Si ya creaste adopciones:
+from backpatas.models.adopcion import Adopcion  # si existe
+
+admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
+
+
+@admin_bp.get("/dashboard")
+@jwt_required()
+@roles_required("admin")
+def admin_dashboard():
+    """
+    Panel administrativo (resumen)
+    ---
+    tags:
+      - Panel administrativo
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Resumen de métricas para el panel admin
+    """
+
+    # Usuarios
+    usuarios_total = db.session.query(func.count(Usuario.id)).scalar()
+    usuarios_activos = db.session.query(func.count(Usuario.id)).filter(Usuario.estado != 0).scalar()
+    usuarios_inactivos = usuarios_total - usuarios_activos
+
+    # Fundaciones
+    fundaciones_total = db.session.query(func.count(Fundacion.id)).scalar()
+
+    # Perros por estado_id (1 disp, 2 no disp, 3 eliminados)
+    perros_rows = (
+        db.session.query(Perro.estado_id, func.count(Perro.id))
+        .group_by(Perro.estado_id)
+        .all()
+    )
+    perros_counts = {eid: n for eid, n in perros_rows}
+
+    perros_disponibles = perros_counts.get(1, 0)
+    perros_no_disponibles = perros_counts.get(2, 0)
+    perros_eliminados = perros_counts.get(3, 0)
+    perros_total = perros_disponibles + perros_no_disponibles + perros_eliminados
+
+    # Solicitudes por estado (1 pendiente, 2 aprobada, 3 rechazada)
+    sol_rows = (
+        db.session.query(Solicitud.estado_id, func.count(Solicitud.id))
+        .group_by(Solicitud.estado_id)
+        .all()
+    )
+    sol_counts = {eid: n for eid, n in sol_rows}
+
+    solicitudes_pendientes = sol_counts.get(1, 0)
+    solicitudes_aprobadas = sol_counts.get(2, 0)
+    solicitudes_rechazadas = sol_counts.get(3, 0)
+    solicitudes_total = solicitudes_pendientes + solicitudes_aprobadas + solicitudes_rechazadas
+
+    # Adopciones (si aplica)
+    try:
+        adopciones_total = db.session.query(func.count(Adopcion.id)).scalar()
+    except Exception:
+        adopciones_total = None  # si aún no existe el modelo/tabla
+
+    return jsonify({
+        "usuarios": {
+            "total": usuarios_total,
+            "activos": usuarios_activos,
+            "inactivos": usuarios_inactivos
+        },
+        "fundaciones": {
+            "total": fundaciones_total
+        },
+        "perros": {
+            "total": perros_total,
+            "disponibles": perros_disponibles,
+            "no_disponibles": perros_no_disponibles,
+            "eliminados": perros_eliminados
+        },
+        "solicitudes": {
+            "total": solicitudes_total,
+            "pendientes": solicitudes_pendientes,
+            "aprobadas": solicitudes_aprobadas,
+            "rechazadas": solicitudes_rechazadas
+        },
+        "adopciones": {
+            "total": adopciones_total
+        }
+    }), 200
