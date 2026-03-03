@@ -350,7 +350,7 @@ def aprobar_solicitud(solicitud_id):
 
     data = request.get_json() or {}
     motivo = data.get("motivo")  # opcional
-    ahora = datetime.utcnow()
+    ahora = datetime.now()
 
     try:
         # 1) Aprobar esta solicitud

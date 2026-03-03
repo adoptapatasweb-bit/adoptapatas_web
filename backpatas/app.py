@@ -133,6 +133,9 @@ def create_app():
     from backpatas.routes.user_routes import user_bp
     app.register_blueprint(user_bp)  # si tu user_bp ya tiene url_prefix="/users"
 
+    from backpatas.routes.reportes_routes import reportes_bp
+    app.register_blueprint(reportes_bp)
+
     return app
 
 
