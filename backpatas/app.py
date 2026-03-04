@@ -136,6 +136,9 @@ def create_app():
     from backpatas.routes.reportes_routes import reportes_bp
     app.register_blueprint(reportes_bp)
 
+    from backpatas.routes.seguimientos import seguimientos_bp
+    app.register_blueprint(seguimientos_bp)
+
     return app
 
 
