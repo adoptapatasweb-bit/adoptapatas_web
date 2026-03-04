@@ -1,0 +1,543 @@
+USE [master]
+GO
+/****** Object:  Database [adoptapatas_web]    Script Date: 02/03/2026 23:48:44 ******/
+CREATE DATABASE [adoptapatas_web]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'adoptapatas_web', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\adoptapatas_web.mdf' , SIZE = 8192KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'adoptapatas_web_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL16.MSSQLSERVER\MSSQL\DATA\adoptapatas_web_log.ldf' , SIZE = 8192KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+ WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
+GO
+ALTER DATABASE [adoptapatas_web] SET COMPATIBILITY_LEVEL = 160
+GO
+IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
+begin
+EXEC [adoptapatas_web].[dbo].[sp_fulltext_database] @action = 'enable'
+end
+GO
+ALTER DATABASE [adoptapatas_web] SET ANSI_NULL_DEFAULT OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET ANSI_NULLS OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET ANSI_PADDING OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET ANSI_WARNINGS OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET ARITHABORT OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET AUTO_CLOSE OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET AUTO_SHRINK OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET AUTO_UPDATE_STATISTICS ON 
+GO
+ALTER DATABASE [adoptapatas_web] SET CURSOR_CLOSE_ON_COMMIT OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET CURSOR_DEFAULT  GLOBAL 
+GO
+ALTER DATABASE [adoptapatas_web] SET CONCAT_NULL_YIELDS_NULL OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET NUMERIC_ROUNDABORT OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET QUOTED_IDENTIFIER OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET RECURSIVE_TRIGGERS OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET  ENABLE_BROKER 
+GO
+ALTER DATABASE [adoptapatas_web] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET DATE_CORRELATION_OPTIMIZATION OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET TRUSTWORTHY OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET ALLOW_SNAPSHOT_ISOLATION OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET PARAMETERIZATION SIMPLE 
+GO
+ALTER DATABASE [adoptapatas_web] SET READ_COMMITTED_SNAPSHOT OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET HONOR_BROKER_PRIORITY OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET RECOVERY FULL 
+GO
+ALTER DATABASE [adoptapatas_web] SET  MULTI_USER 
+GO
+ALTER DATABASE [adoptapatas_web] SET PAGE_VERIFY CHECKSUM  
+GO
+ALTER DATABASE [adoptapatas_web] SET DB_CHAINING OFF 
+GO
+ALTER DATABASE [adoptapatas_web] SET FILESTREAM( NON_TRANSACTED_ACCESS = OFF ) 
+GO
+ALTER DATABASE [adoptapatas_web] SET TARGET_RECOVERY_TIME = 60 SECONDS 
+GO
+ALTER DATABASE [adoptapatas_web] SET DELAYED_DURABILITY = DISABLED 
+GO
+ALTER DATABASE [adoptapatas_web] SET ACCELERATED_DATABASE_RECOVERY = OFF  
+GO
+EXEC sys.sp_db_vardecimal_storage_format N'adoptapatas_web', N'ON'
+GO
+ALTER DATABASE [adoptapatas_web] SET QUERY_STORE = ON
+GO
+ALTER DATABASE [adoptapatas_web] SET QUERY_STORE (OPERATION_MODE = READ_WRITE, CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 30), DATA_FLUSH_INTERVAL_SECONDS = 900, INTERVAL_LENGTH_MINUTES = 60, MAX_STORAGE_SIZE_MB = 1000, QUERY_CAPTURE_MODE = AUTO, SIZE_BASED_CLEANUP_MODE = AUTO, MAX_PLANS_PER_QUERY = 200, WAIT_STATS_CAPTURE_MODE = ON)
+GO
+USE [adoptapatas_web]
+GO
+/****** Object:  Table [dbo].[adopciones]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[adopciones](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[solicitud_id] [int] NOT NULL,
+	[perro_id] [int] NOT NULL,
+	[usuario_id] [int] NOT NULL,
+	[fundacion_id] [int] NOT NULL,
+	[fecha_adopcion] [datetime2](0) NOT NULL,
+	[observaciones] [nvarchar](500) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [UQ_adopciones_perro] UNIQUE NONCLUSTERED 
+(
+	[perro_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [UQ_adopciones_solicitud] UNIQUE NONCLUSTERED 
+(
+	[solicitud_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[alembic_version]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[alembic_version](
+	[version_num] [varchar](32) NOT NULL,
+ CONSTRAINT [alembic_version_pkc] PRIMARY KEY CLUSTERED 
+(
+	[version_num] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[banners]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[banners](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[titulo] [nvarchar](150) NOT NULL,
+	[descripcion] [nvarchar](max) NULL,
+	[imagen_url] [nvarchar](255) NULL,
+	[activo] [bit] NULL,
+	[orden] [int] NULL,
+	[created_at] [datetime2](7) NOT NULL,
+	[updated_at] [datetime2](7) NOT NULL,
+	[fundacion_id] [int] NULL,
+	[created_by] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[estados]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[estados](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[nombre] [nvarchar](50) NOT NULL,
+	[tipo] [nvarchar](20) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+ CONSTRAINT [UQ_estados] UNIQUE NONCLUSTERED 
+(
+	[nombre] ASC,
+	[tipo] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[fundaciones]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[fundaciones](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[identificacion] [nvarchar](50) NULL,
+	[logo_url] [nvarchar](255) NULL,
+	[nombre] [nvarchar](150) NOT NULL,
+	[contacto] [nvarchar](150) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[perros]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[perros](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[foto_url] [nvarchar](255) NULL,
+	[nombre] [nvarchar](100) NOT NULL,
+	[tamano] [nvarchar](20) NULL,
+	[nivel_actividad] [int] NULL,
+	[edad] [int] NULL,
+	[esterilizado] [bit] NOT NULL,
+	[ruido] [int] NULL,
+	[necesita_espacio] [bit] NOT NULL,
+	[fundacion_id] [int] NOT NULL,
+	[estado_id] [int] NOT NULL,
+	[sexo] [nvarchar](10) NOT NULL,
+	[descripcion] [nvarchar](1000) NULL,
+	[raza] [nvarchar](100) NULL,
+	[peso] [decimal](5, 2) NULL,
+	[vacunado] [bit] NOT NULL,
+	[fecha_ingreso] [datetime2](7) NOT NULL,
+	[apto_ninos] [bit] NULL,
+	[apto_perros] [bit] NULL,
+	[apto_gatos] [bit] NULL,
+	[necesidad_ejercicio] [int] NULL,
+	[nivel_muda] [int] NULL,
+	[necesidad_entrenamiento] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[respuestas_formulario]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[respuestas_formulario](
+	[solicitud_id] [int] NOT NULL,
+	[nombre_completo] [nvarchar](150) NULL,
+	[numero_identificacion] [nvarchar](50) NULL,
+	[edad] [int] NULL,
+	[celular] [nvarchar](20) NULL,
+	[telefono_fijo] [nvarchar](20) NULL,
+	[email] [nvarchar](100) NULL,
+	[direccion] [nvarchar](200) NULL,
+	[barrio] [nvarchar](100) NULL,
+	[ciudad] [nvarchar](100) NULL,
+	[estado_civil] [nvarchar](50) NULL,
+	[profesion] [nvarchar](150) NULL,
+	[actividad_economica] [nvarchar](150) NULL,
+	[empresa] [nvarchar](150) NULL,
+	[cargo] [nvarchar](100) NULL,
+	[horario_laboral] [nvarchar](100) NULL,
+	[responsable_economico_mascota] [nvarchar](100) NULL,
+	[otro_responsable] [nvarchar](100) NULL,
+	[convivientes] [nvarchar](150) NULL,
+	[numero_personas_hogar] [int] NULL,
+	[edades_hogar] [nvarchar](100) NULL,
+	[alergias_en_hogar] [bit] NULL,
+	[acuerdo_familiar_adopcion] [bit] NULL,
+	[tipo_vivienda] [nvarchar](50) NULL,
+	[tenencia_vivienda] [nvarchar](50) NULL,
+	[permite_mascotas] [bit] NULL,
+	[espacio_suficiente] [bit] NULL,
+	[tiene_jardin] [bit] NULL,
+	[vivienda_segura] [bit] NULL,
+	[lugar_mascota] [nvarchar](100) NULL,
+	[instalara_mallas] [bit] NULL,
+	[frecuencia_mudanza] [nvarchar](50) NULL,
+	[experiencia_mascotas] [bit] NULL,
+	[mascotas_actuales] [bit] NULL,
+	[detalle_mascotas_actuales] [nvarchar](max) NULL,
+	[ubicacion_mascotas_actuales] [nvarchar](100) NULL,
+	[mascotas_previas] [bit] NULL,
+	[causa_fallecimiento_mascotas] [nvarchar](max) NULL,
+	[frecuencia_en_casa] [nvarchar](50) NULL,
+	[horas_solo] [int] NULL,
+	[responsable_cuidados] [nvarchar](100) NULL,
+	[plan_ausencias_largas] [nvarchar](150) NULL,
+	[compromiso_veterinario] [bit] NULL,
+	[consciente_gastos] [bit] NULL,
+	[accion_problemas_salud] [nvarchar](max) NULL,
+	[accion_danos_objetos] [nvarchar](max) NULL,
+	[motivo_adopcion] [nvarchar](max) NULL,
+	[motivo_devolucion] [nvarchar](max) NULL,
+	[planes_viaje] [bit] NULL,
+	[destino_viaje] [nvarchar](150) NULL,
+	[plan_mascota_viaje] [nvarchar](150) NULL,
+	[plan_vacaciones] [nvarchar](150) NULL,
+	[conoce_esterilizacion] [bit] NULL,
+	[opinion_esterilizacion] [nvarchar](max) NULL,
+	[salida_sola_calle] [bit] NULL,
+	[uso_identificacion] [bit] NULL,
+	[plan_nuevo_integrante] [nvarchar](max) NULL,
+	[acepta_visita_domiciliaria] [bit] NULL,
+	[fotos_mascotas] [nvarchar](max) NULL,
+	[video_vivienda] [nvarchar](max) NULL,
+	[referencias_personales] [nvarchar](max) NULL,
+	[nivel_actividad_usuario] [int] NULL,
+	[tamano_preferido] [nvarchar](20) NULL,
+	[tolerancia_ruido] [int] NULL,
+	[anios_experiencia_mascotas] [int] NULL,
+	[objetivo_adopcion] [nvarchar](100) NULL,
+	[dio_mascota_adopcion] [bit] NULL,
+	[motivo_adopcion_previa] [nvarchar](max) NULL,
+	[presupuesto_mensual] [decimal](10, 2) NULL,
+	[tipo_entorno] [nvarchar](50) NULL,
+	[dinamica_hogar] [nvarchar](50) NULL,
+	[anios_compromiso] [int] NULL,
+	[hay_ninos] [bit] NULL,
+	[tiene_perros_actualmente] [bit] NULL,
+	[tiene_gatos_actualmente] [bit] NULL,
+	[actividad_hogar] [int] NULL,
+	[tolerancia_muda] [int] NULL,
+	[disposicion_entrenamiento] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[solicitud_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[solicitudes]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[solicitudes](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[usuario_id] [int] NOT NULL,
+	[perro_id] [int] NOT NULL,
+	[fecha] [datetime] NOT NULL,
+	[resultado_knn] [int] NULL,
+	[estado_id] [int] NOT NULL,
+	[fecha_creacion] [datetime2](7) NOT NULL,
+	[fecha_decision] [datetime2](7) NULL,
+	[decidido_por_usuario_id] [int] NULL,
+	[motivo_decision] [nvarchar](500) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[token_blocklist]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[token_blocklist](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[jti] [nvarchar](36) NOT NULL,
+	[created_at] [datetime2](7) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED 
+(
+	[jti] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[usuarios]    Script Date: 02/03/2026 23:48:45 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[usuarios](
+	[id] [int] IDENTITY(1,1) NOT NULL,
+	[identificacion] [nvarchar](50) NULL,
+	[nombre] [nvarchar](150) NOT NULL,
+	[email] [nvarchar](100) NOT NULL,
+	[password] [nvarchar](255) NOT NULL,
+	[rol] [nvarchar](20) NOT NULL,
+	[estado] [int] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED 
+(
+	[email] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_banners_fundacion_activo_orden]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [IX_banners_fundacion_activo_orden] ON [dbo].[banners]
+(
+	[fundacion_id] ASC,
+	[activo] ASC,
+	[orden] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [idx_perros_estado_id]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [idx_perros_estado_id] ON [dbo].[perros]
+(
+	[estado_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [idx_perros_fundacion]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [idx_perros_fundacion] ON [dbo].[perros]
+(
+	[fundacion_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_perros_estado_id]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [IX_perros_estado_id] ON [dbo].[perros]
+(
+	[estado_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_perros_fundacion_id]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [IX_perros_fundacion_id] ON [dbo].[perros]
+(
+	[fundacion_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [idx_formulario_ciudad]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [idx_formulario_ciudad] ON [dbo].[respuestas_formulario]
+(
+	[ciudad] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [idx_solicitudes_estado_id]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [idx_solicitudes_estado_id] ON [dbo].[solicitudes]
+(
+	[estado_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [idx_solicitudes_perro]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [idx_solicitudes_perro] ON [dbo].[solicitudes]
+(
+	[perro_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [idx_solicitudes_usuario]    Script Date: 02/03/2026 23:48:45 ******/
+CREATE NONCLUSTERED INDEX [idx_solicitudes_usuario] ON [dbo].[solicitudes]
+(
+	[usuario_id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[adopciones] ADD  CONSTRAINT [DF_adopciones_fecha]  DEFAULT (sysutcdatetime()) FOR [fecha_adopcion]
+GO
+ALTER TABLE [dbo].[banners] ADD  CONSTRAINT [DF_banners_activo]  DEFAULT ((1)) FOR [activo]
+GO
+ALTER TABLE [dbo].[banners] ADD  CONSTRAINT [DF_banners_orden]  DEFAULT ((0)) FOR [orden]
+GO
+ALTER TABLE [dbo].[banners] ADD  CONSTRAINT [DF_banners_created_at]  DEFAULT (sysutcdatetime()) FOR [created_at]
+GO
+ALTER TABLE [dbo].[banners] ADD  CONSTRAINT [DF_banners_updated_at]  DEFAULT (sysutcdatetime()) FOR [updated_at]
+GO
+ALTER TABLE [dbo].[perros] ADD  CONSTRAINT [DF_perros_sexo]  DEFAULT ('Macho') FOR [sexo]
+GO
+ALTER TABLE [dbo].[perros] ADD  CONSTRAINT [DF_perros_vacunado]  DEFAULT ((0)) FOR [vacunado]
+GO
+ALTER TABLE [dbo].[perros] ADD  CONSTRAINT [DF_perros_fecha_ingreso]  DEFAULT (sysutcdatetime()) FOR [fecha_ingreso]
+GO
+ALTER TABLE [dbo].[solicitudes] ADD  DEFAULT (getdate()) FOR [fecha]
+GO
+ALTER TABLE [dbo].[solicitudes] ADD  CONSTRAINT [DF_solicitudes_fecha_creacion]  DEFAULT (sysutcdatetime()) FOR [fecha_creacion]
+GO
+ALTER TABLE [dbo].[token_blocklist] ADD  DEFAULT (sysdatetime()) FOR [created_at]
+GO
+ALTER TABLE [dbo].[usuarios] ADD  DEFAULT ((1)) FOR [estado]
+GO
+ALTER TABLE [dbo].[adopciones]  WITH CHECK ADD  CONSTRAINT [FK_adopciones_fundaciones] FOREIGN KEY([fundacion_id])
+REFERENCES [dbo].[fundaciones] ([id])
+GO
+ALTER TABLE [dbo].[adopciones] CHECK CONSTRAINT [FK_adopciones_fundaciones]
+GO
+ALTER TABLE [dbo].[adopciones]  WITH CHECK ADD  CONSTRAINT [FK_adopciones_perros] FOREIGN KEY([perro_id])
+REFERENCES [dbo].[perros] ([id])
+GO
+ALTER TABLE [dbo].[adopciones] CHECK CONSTRAINT [FK_adopciones_perros]
+GO
+ALTER TABLE [dbo].[adopciones]  WITH CHECK ADD  CONSTRAINT [FK_adopciones_solicitudes] FOREIGN KEY([solicitud_id])
+REFERENCES [dbo].[solicitudes] ([id])
+GO
+ALTER TABLE [dbo].[adopciones] CHECK CONSTRAINT [FK_adopciones_solicitudes]
+GO
+ALTER TABLE [dbo].[adopciones]  WITH CHECK ADD  CONSTRAINT [FK_adopciones_usuarios] FOREIGN KEY([usuario_id])
+REFERENCES [dbo].[usuarios] ([id])
+GO
+ALTER TABLE [dbo].[adopciones] CHECK CONSTRAINT [FK_adopciones_usuarios]
+GO
+ALTER TABLE [dbo].[banners]  WITH CHECK ADD  CONSTRAINT [FK_banners_fundaciones] FOREIGN KEY([fundacion_id])
+REFERENCES [dbo].[fundaciones] ([id])
+GO
+ALTER TABLE [dbo].[banners] CHECK CONSTRAINT [FK_banners_fundaciones]
+GO
+ALTER TABLE [dbo].[banners]  WITH CHECK ADD  CONSTRAINT [FK_banners_usuarios] FOREIGN KEY([created_by])
+REFERENCES [dbo].[usuarios] ([id])
+GO
+ALTER TABLE [dbo].[banners] CHECK CONSTRAINT [FK_banners_usuarios]
+GO
+ALTER TABLE [dbo].[perros]  WITH CHECK ADD FOREIGN KEY([fundacion_id])
+REFERENCES [dbo].[fundaciones] ([id])
+GO
+ALTER TABLE [dbo].[perros]  WITH CHECK ADD  CONSTRAINT [FK_perros_estado] FOREIGN KEY([estado_id])
+REFERENCES [dbo].[estados] ([id])
+GO
+ALTER TABLE [dbo].[perros] CHECK CONSTRAINT [FK_perros_estado]
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD FOREIGN KEY([solicitud_id])
+REFERENCES [dbo].[solicitudes] ([id])
+GO
+ALTER TABLE [dbo].[solicitudes]  WITH CHECK ADD FOREIGN KEY([perro_id])
+REFERENCES [dbo].[perros] ([id])
+GO
+ALTER TABLE [dbo].[solicitudes]  WITH CHECK ADD FOREIGN KEY([usuario_id])
+REFERENCES [dbo].[usuarios] ([id])
+GO
+ALTER TABLE [dbo].[solicitudes]  WITH CHECK ADD  CONSTRAINT [FK_solicitudes_decidido_por] FOREIGN KEY([decidido_por_usuario_id])
+REFERENCES [dbo].[usuarios] ([id])
+GO
+ALTER TABLE [dbo].[solicitudes] CHECK CONSTRAINT [FK_solicitudes_decidido_por]
+GO
+ALTER TABLE [dbo].[solicitudes]  WITH CHECK ADD  CONSTRAINT [FK_solicitudes_estado] FOREIGN KEY([estado_id])
+REFERENCES [dbo].[estados] ([id])
+GO
+ALTER TABLE [dbo].[solicitudes] CHECK CONSTRAINT [FK_solicitudes_estado]
+GO
+ALTER TABLE [dbo].[perros]  WITH CHECK ADD CHECK  (([edad]>=(0) AND [edad]<=(25)))
+GO
+ALTER TABLE [dbo].[perros]  WITH CHECK ADD CHECK  (([nivel_actividad]>=(1) AND [nivel_actividad]<=(5)))
+GO
+ALTER TABLE [dbo].[perros]  WITH CHECK ADD CHECK  (([ruido]>=(1) AND [ruido]<=(5)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([anios_experiencia_mascotas]>=(0)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([anios_compromiso]>=(0)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([horas_solo]>=(0)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([nivel_actividad_usuario]>=(1) AND [nivel_actividad_usuario]<=(5)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([numero_personas_hogar]>=(1)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([presupuesto_mensual]>=(0)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([tolerancia_ruido]>=(1) AND [tolerancia_ruido]<=(5)))
+GO
+ALTER TABLE [dbo].[respuestas_formulario]  WITH CHECK ADD CHECK  (([edad]>=(18) AND [edad]<=(100)))
+GO
+ALTER TABLE [dbo].[usuarios]  WITH CHECK ADD  CONSTRAINT [chk_rol_usuario] CHECK  (([rol]='fundacion' OR [rol]='usuario' OR [rol]='admin'))
+GO
+ALTER TABLE [dbo].[usuarios] CHECK CONSTRAINT [chk_rol_usuario]
+GO
+USE [master]
+GO
+ALTER DATABASE [adoptapatas_web] SET  READ_WRITE 
+GO
