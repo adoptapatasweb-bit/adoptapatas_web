@@ -189,8 +189,8 @@ def forgot_password():
 
     token = generate_reset_token(user.id, user.password)
 
-    base = current_app.config.get("BACKEND_BASE_URL") or request.host_url.rstrip("/")
-    link = f"{base}/auth/reset-password?token={token}"
+    frontend_base = current_app.config.get("FRONTEND_BASE_URL", "http://localhost:5173")
+    link = f"{frontend_base}/ResetPassword?token={token}"
 
     try:
         msg = Message(
@@ -212,7 +212,7 @@ def forgot_password():
 @auth_bp.get("/reset-password")
 def reset_password_form():
     """
-    Formulario HTML para restablecer contraseña (vía token)
+    Validar token de restablecimiento
     ---
     tags:
       - Auth
@@ -224,123 +224,72 @@ def reset_password_form():
         description: Token de reseteo enviado por correo
     responses:
       200:
-        description: HTML del formulario de restablecimiento
+        description: Token válido
       400:
         description: Token faltante, inválido o expirado
     """
     token = request.args.get("token", "").strip()
     if not token:
-        return "<h3>Token faltante.</h3>", 400
+        return jsonify({"msg": "Token faltante"}), 400
 
     ttl = current_app.config.get("RESET_TOKEN_TTL_SECONDS", 1800)
     status = verify_reset_token(token, ttl)
 
-    if status in (None, "expired"):
-        return "<h3>Token inválido o expirado.</h3>", 400
+    if status == "expired":
+        return jsonify({"msg": "Token expirado"}), 400
 
-    return f"""
-    <html>
-      <head><meta charset="utf-8"><title>Reset password</title></head>
-      <body>
-        <h2>Restablecer contraseña</h2>
-        <form method="POST" action="/auth/reset-password">
-          <input type="hidden" name="token" value="{token}" />
-          <label>Nueva contraseña:</label><br/>
-          <input type="password" name="new_password" required minlength="6"/><br/><br/>
-          <label>Confirmar contraseña:</label><br/>
-          <input type="password" name="confirm_password" required minlength="6"/><br/><br/>
-          <button type="submit">Actualizar</button>
-        </form>
-      </body>
-    </html>
-    """, 200
+    if status is None:
+        return jsonify({"msg": "Token inválido"}), 400
+
+    return jsonify({
+        "msg": "Token válido",
+        "valid": True
+    }), 200
 
 
 @auth_bp.post("/reset-password")
 def reset_password_submit():
     """
-    Restablecer contraseña (acepta JSON o form-data)
+    Restablecer contraseña
     ---
     tags:
       - Auth
-    parameters:
-      - in: body
-        name: body
-        required: false
-        description: Enviar JSON si Content-Type es application/json
-        schema:
-          type: object
-          properties:
-            token:
-              type: string
-            new_password:
-              type: string
-              example: "nuevaClave123"
-            confirm_password:
-              type: string
-              example: "nuevaClave123"
-      - in: formData
-        name: token
-        type: string
-        required: false
-      - in: formData
-        name: new_password
-        type: string
-        required: false
-      - in: formData
-        name: confirm_password
-        type: string
-        required: false
-    responses:
-      200:
-        description: HTML de confirmación (contraseña actualizada)
-      400:
-        description: Token faltante/ inválido/ expirado, o validación de contraseña
     """
-    if request.content_type and "application/json" in request.content_type:
-        data = request.get_json(silent=True) or {}
-        token = (data.get("token") or "").strip()
-        new_password = data.get("new_password") or ""
-        confirm = data.get("confirm_password") or ""
-    else:
-        token = (request.form.get("token") or "").strip()
-        new_password = request.form.get("new_password") or ""
-        confirm = request.form.get("confirm_password") or ""
+    data = request.get_json(silent=True) or {}
+
+    token = (data.get("token") or "").strip()
+    new_password = data.get("new_password") or ""
+    confirm = data.get("confirm_password") or ""
 
     if not token:
-        return "Token faltante.", 400
+        return jsonify({"msg": "Token faltante"}), 400
+
     if len(new_password) < 6:
-        return "La contraseña debe tener al menos 6 caracteres.", 400
+        return jsonify({"msg": "La contraseña debe tener al menos 6 caracteres"}), 400
+
     if new_password != confirm:
-        return "Las contraseñas no coinciden.", 400
+        return jsonify({"msg": "Las contraseñas no coinciden"}), 400
 
     ttl = current_app.config.get("RESET_TOKEN_TTL_SECONDS", 1800)
     data = verify_reset_token(token, ttl)
 
     if data == "expired":
-        return "Token expirado.", 400
+        return jsonify({"msg": "Token expirado"}), 400
+
     if not data:
-        return "Token inválido.", 400
+        return jsonify({"msg": "Token inválido"}), 400
 
     user = Usuario.query.get(data["uid"])
     if not user:
-        return "Usuario no existe.", 400
+        return jsonify({"msg": "Usuario no existe"}), 400
 
-    # invalida token si ya cambió el password desde que se generó
     if user.password != data["pwh"]:
-        return "Token ya no es válido (solicita uno nuevo).", 400
+        return jsonify({"msg": "Token ya no es válido. Solicita uno nuevo"}), 400
 
-    # usa el MISMO pwd_context que ya tienes en el proyecto
     user.set_password(new_password)
-
     db.session.commit()
 
-    return """
-    <h2>Contraseña actualizada ✅</h2>
-    <p>Ya puedes iniciar sesión con tu nueva contraseña.</p>
-    """, 200
-
-
+    return jsonify({"msg": "Contraseña actualizada correctamente"}), 200
 # =========================
 # RF-001: Registro público
 # =========================
