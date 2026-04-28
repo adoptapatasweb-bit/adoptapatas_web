@@ -13,6 +13,11 @@ from backpatas.models.fundacion import Fundacion
 from backpatas.services.knn_service import build_user_vector, knn_rank_perros
 
 from datetime import datetime
+from backpatas.models.solicitud import Solicitud
+from backpatas.models.perro import Perro
+from backpatas.models.usuario import Usuario
+from backpatas.models.fundacion import Fundacion
+from backpatas.models.solicitud import Solicitud
 
 solicitud_bp = Blueprint("solicitud", __name__)
 
@@ -222,17 +227,16 @@ def listar_solicitudes():
         if not fundacion:
             return jsonify({"msg": "Fundación no encontrada para este usuario"}), 404
 
-        q = (
+        solicitudes = (
             db.session.query(Solicitud)
             .join(Perro, Perro.id == Solicitud.perro_id)
             .filter(Perro.fundacion_id == fundacion.id)
             .order_by(Solicitud.id.desc())
+            .all()
         )
-        solicitudes = q.all()
         return jsonify([s.to_dict() for s in solicitudes]), 200
 
     return jsonify({"msg": "Rol no permitido", "rol": rol}), 403
-
 
 # =========================================================
 # PATCH /solicitudes/<id>/aprobar
@@ -406,13 +410,29 @@ def aprobar_solicitud(solicitud_id):
             if aprobado_user and aprobado_user.email:
                 send_email(
                     to=aprobado_user.email,
-                    subject=f"AdoptaPatas: Solicitud aprobada (#{solicitud.id})",
-                    body=(
-                        f"Hola.\n\n"
-                        f"¡Buenas noticias! Tu solicitud #{solicitud.id} para {nombre_perro} fue APROBADA.\n\n"
-                        f"Motivo: {solicitud.motivo_decision or 'No especificado'}\n\n"
-                        f"Equipo AdoptaPatas\n"
-                    )
+                    subject=f"AdoptaPatas | ¡Tu solicitud ha sido aprobada! 🐾",
+                    body=f"""
+                    ¡Tu solicitud fue aprobada! 🐾
+
+                    Hola {aprobado_user.nombre if hasattr(aprobado_user, "nombre") else "querido adoptante"},
+
+                    Nos complace informarte que tu solicitud de adopción #{solicitud.id} 
+                    para {nombre_perro} ha sido APROBADA.
+
+                    Motivo / observación:
+                    {solicitud.motivo_decision or "Tu perfil fue evaluado positivamente y cumple con las condiciones esperadas para continuar con el proceso de adopción."}
+
+                    Muy pronto recibirás más información sobre los siguientes pasos del proceso.
+                    Te recomendamos estar pendiente de tu correo y de los canales de contacto registrados.
+
+                    Gracias por abrir tu hogar y tu corazón a la adopción responsable.
+
+                    Con cariño,
+                    Equipo AdoptaPatas
+
+                    ---
+                    AdoptaPatas • Conectando hogares con segundas oportunidades
+                    """
                 )
 
             for s in otras_pendientes:
@@ -421,12 +441,21 @@ def aprobar_solicitud(solicitud_id):
                     send_email(
                         to=u.email,
                         subject=f"AdoptaPatas: Actualización de tu solicitud (#{s.id})",
-                        body=(
-                            f"Hola.\n\n"
-                            f"Tu solicitud #{s.id} para {nombre_perro} fue RECHAZADA automáticamente\n"
-                            f"porque el perro fue asignado a otra solicitud aprobada.\n\n"
-                            f"Puedes postularte a otro peludito en el catálogo.\n\n"
-                            f"Equipo AdoptaPatas\n"
+                        body=( f"""
+                            Hola {s.usuario_nombre if hasattr(s, "usuario_nombre") else ""},
+
+                            Queremos informarte que tu solicitud de adopción #{s.id} para {nombre_perro} no pudo continuar en el proceso.
+
+                            Esto se debe a que el perrito ya fue asignado a otra solicitud previamente aprobada.
+
+                            Sabemos que puede ser una noticia desalentadora, pero te animamos a seguir explorando nuestro catálogo.
+                            Hay muchos peluditos esperando una oportunidad para encontrar un hogar como el tuyo 🐾
+
+                            Gracias por tu interés en la adopción responsable.
+
+                            Con aprecio,
+                            Equipo AdoptaPatas
+                            """
                         )
                     )
 
@@ -595,6 +624,8 @@ def historial_solicitudes():
 
     solicitudes = q.order_by(Solicitud.id.desc()).all()
     return jsonify([s.to_dict() for s in solicitudes]), 200
+
+
 from flask import jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from backpatas.models.solicitud import Solicitud
@@ -639,3 +670,84 @@ def precargar_formulario():
         return jsonify({"msg": "Formulario no encontrado"}), 404
 
     return jsonify(formulario.to_dict()), 200
+
+from flask import jsonify
+from flask_jwt_extended import jwt_required
+
+from backpatas.models.solicitud import Solicitud
+from backpatas.models.respuesta_formulario import RespuestaFormulario
+
+from flask import jsonify
+from flask_jwt_extended import jwt_required
+from flasgger import swag_from
+
+from backpatas.models.solicitud import Solicitud
+from backpatas.models.respuesta_formulario import RespuestaFormulario
+
+@solicitud_bp.route("/<int:solicitud_id>/formulario", methods=["GET"])
+@jwt_required()
+@swag_from({
+    "tags": ["Solicitudes"],
+    "summary": "Obtener formulario completo de una solicitud",
+    "description": "Retorna el detalle de una solicitud junto con todas las respuestas del formulario de adopción asociadas.",
+    "parameters": [
+        {
+            "name": "solicitud_id",
+            "in": "path",
+            "type": "integer",
+            "required": True,
+            "description": "ID de la solicitud"
+        }
+    ],
+    "responses": {
+        200: {
+            "description": "Formulario obtenido correctamente",
+            "examples": {
+                "application/json": {
+                    "solicitud": {
+                        "id": 13,
+                        "usuario_nombre": "cristian",
+                        "perro_nombre": "Luna",
+                        "estado_id": 1,
+                        "estado_nombre": "Creada",
+                        "resultado_knn": 3,
+                        "fecha_creacion": "2026-04-07T03:31:05.856917+00:00"
+                    },
+                    "formulario": {
+                        "nombre_completo": "Cristian Pérez",
+                        "edad": 28,
+                        "tipo_vivienda": "Casa",
+                        "permite_mascotas": True,
+                        "motivo_adopcion": "Quiero darle un hogar"
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "Solicitud o formulario no encontrado",
+            "examples": {
+                "application/json": {
+                    "message": "Solicitud no encontrada"
+                }
+            }
+        },
+        401: {
+            "description": "No autorizado"
+        }
+    }
+})
+def obtener_formulario_solicitud(solicitud_id):
+    solicitud = Solicitud.query.get(solicitud_id)
+
+    if not solicitud:
+        return jsonify({"message": "Solicitud no encontrada"}), 404
+
+    respuesta = RespuestaFormulario.query.filter_by(solicitud_id=solicitud_id).first()
+
+    if not respuesta:
+        return jsonify({"message": "No se encontraron respuestas para esta solicitud"}), 404
+
+    return jsonify({
+        "solicitud": solicitud.to_dict(),
+        "formulario": respuesta.to_dict()
+    }), 200

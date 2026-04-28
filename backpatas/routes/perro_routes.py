@@ -142,15 +142,102 @@ def eliminar_perro(perro_id):
             return jsonify({"msg": "No puedes eliminar perros de otra fundación"}), 403
 
     # Estado 3 = eliminado (ajusta si es otro id)
-    perro.estado_id = 3
+    perro.estado_id = 4
 
     db.session.commit()
 
     return jsonify({"msg": "Perro eliminado lógicamente"}), 200
 
+from flask import jsonify
+from flasgger import swag_from
 
-@perro_bp.get("/catalogo")
+@perro_bp.route("/admin/perros", methods=["GET"])
 @jwt_required()
+@roles_required("admin", "fundacion")
+@swag_from({
+    "tags": ["Admin - Perros"],
+    "summary": "Obtener lista de perros (Admin)",
+    "description": "Retorna la lista completa de perros registrados en la base de datos. Endpoint exclusivo para administradores.",
+    "responses": {
+        "200": {
+            "description": "Lista de perros obtenida exitosamente",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": True
+                    },
+                    "total": {
+                        "type": "integer",
+                        "example": 100
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "integer"},
+                                "foto_url": {"type": "string"},
+                                "nombre": {"type": "string"},
+                                "tamano": {"type": "string"},
+                                "nivel_actividad": {"type": "integer"},
+                                "edad": {"type": "integer"},
+                                "esterilizado": {"type": "boolean"},
+                                "ruido": {"type": "integer"},
+                                "necesita_espacio": {"type": "boolean"},
+                                "fundacion_id": {"type": "integer"},
+                                "estado_id": {"type": "integer"},
+                                "sexo": {"type": "string"},
+                                "descripcion": {"type": "string"},
+                                "raza": {"type": "string"},
+                                "peso": {"type": "number", "format": "float"},
+                                "vacunado": {"type": "boolean"},
+                                "fecha_ingreso": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "apto_ninos": {"type": "boolean"},
+                                "apto_perros": {"type": "boolean"},
+                                "apto_gatos": {"type": "boolean"},
+                                "necesidad_ejercicio": {"type": "integer"},
+                                "nivel_muda": {"type": "integer"},
+                                "necesidad_entrenamiento": {"type": "integer"}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "500": {
+            "description": "Error interno del servidor",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "error": {"type": "string"}
+                }
+            }
+        }
+    }
+})
+def obtener_perros_admin():
+    try:
+        # ⚠️ IMPORTANTE: siempre define orden en MSSQL
+        perros = Perro.query.order_by(Perro.id.desc()).all()
+
+        return jsonify({
+            "success": True,
+            "total": len(perros),
+            "data": [perro.to_dict() for perro in perros]
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+@perro_bp.get("/catalogo")
 def catalogo_perros():
     """
     Catálogo de perros General o Filtrado  - requiere JWT
@@ -274,6 +361,44 @@ def mis_perros():
     return jsonify([p.to_dict() for p in perros]), 200
 
 
+@perro_bp.get("/catalogo/<int:perro_id>")
+
+def detalle_perro_catalogo(perro_id):
+    """
+    Obtener detalle público de un perro disponible en catálogo
+    ---
+    tags:
+      - Perros
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: perro_id
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Detalle del perro disponible
+      401:
+        description: Token inválido o ausente
+      404:
+        description: Perro no encontrado o no disponible en catálogo
+    """
+    perro = Perro.query.get(perro_id)
+
+    if not perro:
+        return jsonify({"msg": "Perro no encontrado"}), 404
+
+    # Cambia este valor si "disponible" en tu BD no es 1
+    if perro.estado_id != 1:
+        return jsonify({"msg": "Este perro no está disponible en catálogo"}), 404
+
+    fundacion = Fundacion.query.get(perro.fundacion_id)
+
+    data = perro.to_dict()
+    data["fundacion"] = fundacion.to_dict() if fundacion else None
+
+    return jsonify(data), 200
 @perro_bp.get("/<int:perro_id>")
 @jwt_required()
 @roles_required("admin", "fundacion")
@@ -386,6 +511,7 @@ def editar_perro(perro_id):
 
     rol = get_jwt().get("rol")
 
+
     if rol == "fundacion":
         user_id = int(get_jwt_identity())
         u = Usuario.query.get(user_id)
@@ -409,7 +535,17 @@ def editar_perro(perro_id):
     if "ruido" in data: perro.ruido = data["ruido"]
     if "necesita_espacio" in data: perro.necesita_espacio = data["necesita_espacio"]
     if "estado_id" in data: perro.estado_id = data["estado_id"]
-
+    if "sexo" in data: perro.sexo = data["sexo"]
+    if "descripcion" in data: perro.descripcion = data["descripcion"]
+    if "raza" in data: perro.raza = data["raza"]
+    if "peso" in data: perro.peso = data["peso"]
+    if "vacunado" in data: perro.vacunado = data["vacunado"]
+    if "apto_ninos" in data: perro.apto_ninos = data["apto_ninos"]
+    if "apto_perros" in data: perro.apto_perros = data["apto_perros"]
+    if "apto_gatos" in data: perro.apto_gatos = data["apto_gatos"]
+    if "necesidad_ejercicio" in data: perro.necesidad_ejercicio = data["necesidad_ejercicio"]
+    if "nivel_muda" in data: perro.nivel_muda = data["nivel_muda"]
+    if "necesidad_entrenamiento" in data: perro.necesidad_entrenamiento = data["necesidad_entrenamiento"]
     if "fundacion_id" in data:
         if rol != "admin":
             return jsonify({"msg": "Solo admin puede cambiar fundacion_id"}), 403
@@ -511,6 +647,17 @@ def perros_recomendados():
     }), 200
 
 
+from datetime import datetime
+from flask import request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+
+from backpatas.extensions import db
+from backpatas.models.perro import Perro
+from backpatas.models.usuario import Usuario
+from backpatas.models.fundacion import Fundacion
+from backpatas.utils.decorators import roles_required
+
+
 @perro_bp.post("/")
 @jwt_required()
 @roles_required("admin", "fundacion")
@@ -536,15 +683,37 @@ def crear_perro():
             tamano:
               type: string
             nivel_actividad:
-              type: string
+              type: integer
             edad:
               type: integer
             esterilizado:
               type: boolean
             ruido:
-              type: string
+              type: integer
             necesita_espacio:
               type: boolean
+            sexo:
+              type: string
+            descripcion:
+              type: string
+            raza:
+              type: string
+            peso:
+              type: number
+            vacunado:
+              type: boolean
+            apto_ninos:
+              type: boolean
+            apto_perros:
+              type: boolean
+            apto_gatos:
+              type: boolean
+            necesidad_ejercicio:
+              type: integer
+            nivel_muda:
+              type: integer
+            necesidad_entrenamiento:
+              type: integer
             fundacion_id:
               type: integer
               description: Requerido si el rol es admin
@@ -555,6 +724,8 @@ def crear_perro():
             - nivel_actividad
             - esterilizado
             - necesita_espacio
+            - sexo
+            - vacunado
             - estado_id
     responses:
       201:
@@ -574,23 +745,33 @@ def crear_perro():
     nivel_actividad = data.get("nivel_actividad")
     esterilizado = data.get("esterilizado")
     necesita_espacio = data.get("necesita_espacio")
+    sexo = data.get("sexo")
+    vacunado = data.get("vacunado")
     estado_id = data.get("estado_id")
 
-    if not nombre or nivel_actividad is None or esterilizado is None or necesita_espacio is None or not estado_id:
+    if (
+        not nombre
+        or nivel_actividad is None
+        or esterilizado is None
+        or necesita_espacio is None
+        or not sexo
+        or vacunado is None
+        or estado_id is None
+    ):
         return jsonify({"msg": "Faltan campos obligatorios"}), 400
 
     rol = get_jwt().get("rol")
-
     fundacion_id = None
 
     if rol == "admin":
         fundacion_id = data.get("fundacion_id")
-        if not fundacion_id:
+        if fundacion_id is None:
             return jsonify({"msg": "Como admin debes enviar fundacion_id"}), 400
 
     elif rol == "fundacion":
         user_id = int(get_jwt_identity())
         u = Usuario.query.get(user_id)
+
         if not u or not u.identificacion:
             return jsonify({"msg": "No se pudo identificar la fundación (usuario sin identificacion)"}), 400
 
@@ -602,7 +783,7 @@ def crear_perro():
 
     perro = Perro(
         foto_url=data.get("foto_url"),
-        nombre=nombre,
+        nombre=nombre.strip() if isinstance(nombre, str) else nombre,
         tamano=data.get("tamano"),
         nivel_actividad=nivel_actividad,
         edad=data.get("edad"),
@@ -610,10 +791,25 @@ def crear_perro():
         ruido=data.get("ruido"),
         necesita_espacio=necesita_espacio,
         fundacion_id=fundacion_id,
-        estado_id=estado_id
+        estado_id=estado_id,
+        sexo=sexo,
+        descripcion=data.get("descripcion"),
+        raza=data.get("raza"),
+        peso=data.get("peso"),
+        vacunado=vacunado,
+        fecha_ingreso=datetime.utcnow(),
+        apto_ninos=data.get("apto_ninos"),
+        apto_perros=data.get("apto_perros"),
+        apto_gatos=data.get("apto_gatos"),
+        necesidad_ejercicio=data.get("necesidad_ejercicio"),
+        nivel_muda=data.get("nivel_muda"),
+        necesidad_entrenamiento=data.get("necesidad_entrenamiento"),
     )
 
     db.session.add(perro)
     db.session.commit()
 
-    return jsonify({"msg": "Perro registrado", "perro": perro.to_dict()}), 201
+    return jsonify({
+        "msg": "Perro registrado",
+        "perro": perro.to_dict()
+    }), 201

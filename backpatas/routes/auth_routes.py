@@ -293,93 +293,74 @@ def reset_password_submit():
 # =========================
 # RF-001: Registro público
 # =========================
+from flask import request, jsonify
+from backpatas.extensions import db
+from backpatas.models.usuario import Usuario
+from backpatas.services.email_service import send_email
+
 @auth_bp.post("/register")
 def register_usuario():
-    """
-    Registro público de usuario
-    ---
-    tags:
-      - administracion - usuario
-    parameters:
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - nombre
-            - email
-            - password
-          properties:
-            nombre:
-              type: string
-              example: "Juan Pérez"
-            email:
-              type: string
-              example: "juan@mail.com"
-            password:
-              type: string
-              example: "Clave123"
-            identificacion:
-              type: string
-              example: "123456789"
-            estado:
-              type: integer
-              example: 1
-              description: 1 activo, 0 inactivo
-    responses:
-      201:
-        description: Usuario creado
-      400:
-        description: Faltan campos obligatorios
-      409:
-        description: Email ya registrado
-    """
-    # Obtiene los datos enviados en formato JSON
     data = request.get_json() or {}
 
-    # Extrae campos del JSON
     nombre = data.get("nombre")
     email = data.get("email")
     password = data.get("password")
     identificacion = data.get("identificacion")
-
-    # Se fuerza el rol a "usuario"
-    # Esto evita que alguien cree un admin desde el registro público
     rol = "usuario"
-
-    # Estado por defecto es 1 (activo)
     estado = data.get("estado", 1)
 
-    # Validación básica de campos obligatorios
     if not nombre or not email or not password:
         return jsonify({"msg": "Faltan campos obligatorios (nombre, email, password)"}), 400
 
-    # Verifica si ya existe un usuario con ese email (evita duplicados)
     existente = Usuario.query.filter_by(email=email).first()
     if existente:
         return jsonify({"msg": "El email ya está registrado"}), 409
 
-    # Se crea la instancia del usuario
-    u = Usuario(
-        identificacion=identificacion,
-        nombre=nombre,
-        email=email,
-        rol=rol,
-        estado=estado
-    )
+    try:
+        u = Usuario(
+            identificacion=identificacion,
+            nombre=nombre,
+            email=email,
+            rol=rol,
+            estado=estado
+        )
+        u.set_password(password)
 
-    # Se encripta la contraseña antes de guardarla
-    u.set_password(password)
+        db.session.add(u)
+        db.session.commit()
 
-    # Se guarda en la base de datos
-    db.session.add(u)
-    db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            "msg": "Error al registrar usuario",
+            "error": str(e)
+        }), 500
 
-    # Respuesta exitosa
-    return jsonify({"msg": "Usuario creado", "usuario": u.to_dict()}), 201
+    try:
+        send_email(
+            to=email,
+            subject="Registro exitoso",
+            body=(
+                f"Hola {nombre},\n\n"
+                f"¡Bienvenido(a) a AdoptaPatas!\n\n"
+                f"Nos alegra informarte que tu cuenta ha sido registrada correctamente.\n"
+                f"Ya puedes ingresar a la plataforma para conocer perritos en adopción "
+                f"y gestionar tus solicitudes de manera fácil y segura.\n\n"
+                f"Gracias por hacer parte de esta iniciativa y por apoyar la adopción responsable.\n\n"
+                f"Si no reconoces este registro, por favor ignora este mensaje o repórtalo con nuestro equipo.\n\n"
+                f"Equipo AdoptaPatas"
+            )
+        )
+    except Exception:
+        return jsonify({
+            "msg": "Usuario creado, pero no se pudo enviar el correo",
+            "usuario": u.to_dict()
+        }), 201
 
-
+    return jsonify({
+        "msg": "Usuario creado y correo enviado",
+        "usuario": u.to_dict()
+    }), 201
 # =========================
 # RF-004: Inicio de sesión
 # =========================
@@ -406,37 +387,42 @@ def login():
             password:
               type: string
               example: "Clave123"
+            website:
+              type: string
+              example: ""
+              description: "Campo honeypot antibot (debe ir vacío)"
     responses:
       200:
         description: Login exitoso (access_token y refresh_token)
       400:
-        description: Email y password obligatorios
+        description: Datos inválidos o solicitud sospechosa
       401:
         description: Credenciales inválidas
     """
     data = request.get_json() or {}
 
+    # Honeypot antibot
+    honeypot = data.get("website")
+
+    if honeypot:
+        return jsonify({"msg": "Solicitud inválida posible Bot"}), 400
+
     email = data.get("email")
     password = data.get("password")
 
-    # Validación básica
     if not email or not password:
         return jsonify({"msg": "Email y password son obligatorios"}), 400
 
-    # Busca el usuario por email
     u = Usuario.query.filter_by(email=email).first()
 
-    # Si no existe o la contraseña no coincide → error 401
     if not u or not u.check_password(password):
         return jsonify({"msg": "Credenciales inválidas"}), 401
 
-    # Se genera el token JWT
-    # identity = id del usuario
-    # additional_claims = información extra (rol)
     access_token = create_access_token(
         identity=str(u.id),
         additional_claims={"rol": u.rol}
     )
+
     refresh_token = create_refresh_token(identity=str(u.id))
 
     return jsonify({
@@ -444,7 +430,6 @@ def login():
         "refresh_token": refresh_token,
         "usuario": u.to_dict()
     }), 200
-
 # =========================
 # RF-040: Ruta protegida
 # =========================
@@ -507,6 +492,7 @@ def admin_test():
 # RF-002: Registro seguro de administradores
 # =========================
 @auth_bp.post("/register-admin")
+@jwt_required()
 def register_admin():
     """
     Registro de administrador (requiere admin_secret)

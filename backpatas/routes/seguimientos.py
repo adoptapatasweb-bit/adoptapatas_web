@@ -126,6 +126,53 @@ def crear_seguimiento():
         "data": seguimiento.to_dict()
     }), 201
 
+@seguimientos_bp.get("/para-seguimiento")
+@jwt_required()
+@roles_required("fundacion")
+def obtener_adopciones_para_seguimiento():
+    """
+    Obtener adopciones disponibles para seguimiento
+    ---
+    tags:
+      - Seguimientos
+    summary: Lista de adopciones para realizar seguimiento
+    description: |
+      Retorna las adopciones asociadas a la fundación autenticada.
+      Incluye datos del perro, adoptante y fundación.
+      Solo accesible para usuarios con rol fundación.
+    security:
+      - BearerAuth: []
+    responses:
+      200:
+        description: Lista de adopciones obtenida correctamente
+      401:
+        description: Usuario no autenticado
+      403:
+        description: Usuario no autorizado
+      404:
+        description: Usuario o fundación no encontrada
+    """
+    user_id = int(get_jwt_identity())
+    usuario = Usuario.query.get(user_id)
+
+    if not usuario:
+        return jsonify({"message": "Usuario no encontrado"}), 404
+
+    fundacion_id = _get_fundacion_id_from_user(user_id)
+    if not fundacion_id:
+        return jsonify({"message": "No se pudo asociar la fundación del usuario autenticado"}), 403
+
+    adopciones = (
+        Adopcion.query
+        .filter_by(fundacion_id=fundacion_id)
+        .order_by(Adopcion.fecha_adopcion.desc())
+        .all()
+    )
+
+    return jsonify({
+        "total": len(adopciones),
+        "adopciones": [adopcion.to_dict() for adopcion in adopciones]
+    }), 200
 
 @seguimientos_bp.get("/<int:adopcion_id>")
 @jwt_required()

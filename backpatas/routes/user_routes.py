@@ -5,6 +5,18 @@ from backpatas.models.usuario import Usuario
 from backpatas.utils.decorators import roles_required
 
 
+from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
+from sqlalchemy import func
+
+from backpatas.extensions import db
+from backpatas.utils.decorators import roles_required
+from backpatas.models.usuario import Usuario
+from backpatas.models.fundacion import Fundacion
+from backpatas.models.perro import Perro
+from backpatas.models.solicitud import Solicitud
+from backpatas.models.adopcion import Adopcion
+
 user_bp = Blueprint("users", __name__, url_prefix="/users")
 
 
@@ -14,7 +26,7 @@ user_bp = Blueprint("users", __name__, url_prefix="/users")
 
 
 # 1️⃣ LISTAR USUARIOS
-@user_bp.get("/admin/usuarios")
+@user_bp.get("/usuarios")
 @jwt_required()
 @roles_required("admin")
 def listar_usuarios():
@@ -64,7 +76,7 @@ def listar_usuarios():
 
 
 # 2️⃣ VER DETALLE
-@user_bp.get("/admin/usuarios/<int:usuario_id>")
+@user_bp.get("/usuarios/<int:usuario_id>")
 @jwt_required()
 @roles_required("admin")
 def obtener_usuario(usuario_id):
@@ -95,7 +107,7 @@ def obtener_usuario(usuario_id):
 
 
 # 3️⃣ EDITAR USUARIO
-@user_bp.patch("/admin/usuarios/<int:usuario_id>")
+@user_bp.patch("/usuarios/<int:usuario_id>")
 @jwt_required()
 @roles_required("admin")
 def actualizar_usuario(usuario_id):
@@ -160,7 +172,7 @@ def actualizar_usuario(usuario_id):
 
 
 # 4️⃣ ELIMINACIÓN LÓGICA
-@user_bp.delete("/admin/usuarios/<int:usuario_id>")
+@user_bp.delete("/usuarios/<int:usuario_id>")
 @jwt_required()
 @roles_required("admin")
 def eliminar_usuario(usuario_id):
