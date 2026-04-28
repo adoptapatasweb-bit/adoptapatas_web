@@ -56,7 +56,7 @@ def create_app():
             }
         },
 
-        "host": "localhost:5000",
+        "host": "https://adoptapatas-web.onrender.com",
         "basePath": "/",
         "schemes": ["http"],
 
