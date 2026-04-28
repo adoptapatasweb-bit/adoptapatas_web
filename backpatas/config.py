@@ -2,7 +2,7 @@ import os
 
 class Config:
     RESET_TOKEN_TTL_SECONDS = 30 * 60  # 30 minutos
-    BACKEND_BASE_URL = "http://localhost:5000"  # cámbialo en producción
+    BACKEND_BASE_URL = "https://adoptapatas-web.onrender.com"  # cámbialo en producción
 
     MAIL_SERVER = os.getenv("MAIL_SERVER")
     MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
