@@ -103,7 +103,15 @@ def create_app():
 
     @app.get("/")
     def home():
-        return {"mensaje": "API funcionando correctamente"}
+        return {
+        "aplicacion": "AdoptaPatas Web ",
+        "descripcion": "Plataforma para la gestión y adopción responsable de mascotas",
+        "estado": "en linea",
+        "mensaje": "Servicio funcionando correctamente",
+        "version": "7.0.0",
+        "creador": "Cristian Triana",
+        "documentacion": "/docs"
+    }
 
     # Importa modelos para migraciones
     from backpatas.models import usuario, perro, solicitud  # noqa: F401
