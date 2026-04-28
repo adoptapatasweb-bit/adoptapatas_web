@@ -56,9 +56,7 @@ def create_app():
             }
         },
 
-        "host": "https://adoptapatas-web.onrender.com",
-        "basePath": "/",
-        "schemes": ["http"],
+
 
         "securityDefinitions": {
             "BearerAuth": {
