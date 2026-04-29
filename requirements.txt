@@ -1,5 +1,4 @@
 Flask==3.1.2
-pymssql==2.2.11
 flask-cors==6.0.2
 Flask-JWT-Extended==4.7.1
 Flask-Mail==0.10.0
