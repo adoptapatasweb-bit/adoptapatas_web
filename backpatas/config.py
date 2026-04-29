@@ -13,10 +13,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", os.getenv("MAIL_USERNAME"))
 
     SECRET_KEY = os.getenv("SECRET_KEY", "clave_super_segura")
-    SQLALCHEMY_DATABASE_URI = os.getenv(
-        "DATABASE_URL",
-        "mssql+pyodbc://sa:tu_password@localhost/adoptapatas_web?driver=ODBC+Driver+17+for+SQL+Server"
-    )
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt_super_seguro")
 
