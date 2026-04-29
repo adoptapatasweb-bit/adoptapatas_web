@@ -7,11 +7,12 @@ from flasgger import Swagger
 from backpatas.config import Config
 from backpatas.extensions import db, migrate, jwt, cors, mail
 
+import os
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-
+    print("DATABASE_URL RAW =", repr(os.getenv("DATABASE_URL")))
     # ---------- Swagger (Flasgger) ----------
     swagger_config = {
         "headers": [],
