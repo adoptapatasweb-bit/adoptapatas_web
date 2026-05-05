@@ -298,6 +298,10 @@ from backpatas.extensions import db
 from backpatas.models.usuario import Usuario
 from backpatas.services.email_service import send_email
 
+from flask import request, jsonify
+from backpatas.extensions import db
+from backpatas.models.usuario import Usuario
+
 @auth_bp.post("/register")
 def register_usuario():
     data = request.get_json() or {}
@@ -328,22 +332,8 @@ def register_usuario():
     db.session.add(u)
     db.session.commit()
 
-    # envío de correo (si falla, no afecta la creación del usuario)
-    send_email(
-        to=email,
-        subject="Registro exitoso",
-        body=(
-            f"Hola {nombre},\n\n"
-            f"¡Bienvenido(a) a AdoptaPatas!\n\n"
-            f"Tu cuenta ha sido registrada correctamente.\n"
-            f"Ya puedes ingresar a la plataforma para conocer perritos en adopción "
-            f"y gestionar tus solicitudes de manera fácil y segura.\n\n"
-            f"Equipo AdoptaPatas"
-        )
-    )
-
     return jsonify({
-        "msg": "Usuario creado y correo enviado",
+        "msg": "Usuario creado",
         "usuario": u.to_dict()
     }), 201
 
