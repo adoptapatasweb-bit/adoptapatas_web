@@ -316,51 +316,37 @@ def register_usuario():
     if existente:
         return jsonify({"msg": "El email ya está registrado"}), 409
 
-    try:
-        u = Usuario(
-            identificacion=identificacion,
-            nombre=nombre,
-            email=email,
-            rol=rol,
-            estado=estado
+    u = Usuario(
+        identificacion=identificacion,
+        nombre=nombre,
+        email=email,
+        rol=rol,
+        estado=estado
+    )
+    u.set_password(password)
+
+    db.session.add(u)
+    db.session.commit()
+
+    # envío de correo (si falla, no afecta la creación del usuario)
+    send_email(
+        to=email,
+        subject="Registro exitoso",
+        body=(
+            f"Hola {nombre},\n\n"
+            f"¡Bienvenido(a) a AdoptaPatas!\n\n"
+            f"Tu cuenta ha sido registrada correctamente.\n"
+            f"Ya puedes ingresar a la plataforma para conocer perritos en adopción "
+            f"y gestionar tus solicitudes de manera fácil y segura.\n\n"
+            f"Equipo AdoptaPatas"
         )
-        u.set_password(password)
-
-        db.session.add(u)
-        db.session.commit()
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            "msg": "Error al registrar usuario",
-            "error": str(e)
-        }), 500
-
-    try:
-        send_email(
-            to=email,
-            subject="Registro exitoso",
-            body=(
-                f"Hola {nombre},\n\n"
-                f"¡Bienvenido(a) a AdoptaPatas!\n\n"
-                f"Nos alegra informarte que tu cuenta ha sido registrada correctamente.\n"
-                f"Ya puedes ingresar a la plataforma para conocer perritos en adopción "
-                f"y gestionar tus solicitudes de manera fácil y segura.\n\n"
-                f"Gracias por hacer parte de esta iniciativa y por apoyar la adopción responsable.\n\n"
-                f"Si no reconoces este registro, por favor ignora este mensaje o repórtalo con nuestro equipo.\n\n"
-                f"Equipo AdoptaPatas"
-            )
-        )
-    except Exception:
-        return jsonify({
-            "msg": "Usuario creado, pero no se pudo enviar el correo",
-            "usuario": u.to_dict()
-        }), 201
+    )
 
     return jsonify({
         "msg": "Usuario creado y correo enviado",
         "usuario": u.to_dict()
     }), 201
+
 # =========================
 # RF-004: Inicio de sesión
 # =========================
