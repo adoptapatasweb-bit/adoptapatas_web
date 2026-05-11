@@ -94,9 +94,17 @@ def create_app():
     cors.init_app(
         app,
         resources={r"/*": {"origins": "*"}},
-        supports_credentials=True,  # habilita cookies/tokens
-        allow_headers=["Content-Type", "Authorization"],  # headers que usas
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]  # incluye OPTIONS
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=[
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS",
+            "HEAD"
+        ]
     )
 
     from backpatas.models.token_blocklist import TokenBlocklist
