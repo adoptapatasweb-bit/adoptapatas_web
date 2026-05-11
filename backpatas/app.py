@@ -91,7 +91,13 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
-    cors.init_app(app, resources={r"/*": {"origins": "*"}})
+    cors.init_app(
+        app,
+        resources={r"/*": {"origins": "*"}},
+        supports_credentials=True,  # habilita cookies/tokens
+        allow_headers=["Content-Type", "Authorization"],  # headers que usas
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]  # incluye OPTIONS
+    )
 
     from backpatas.models.token_blocklist import TokenBlocklist
 
