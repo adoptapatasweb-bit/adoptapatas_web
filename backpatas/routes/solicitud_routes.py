@@ -755,32 +755,16 @@ def obtener_formulario_solicitud(solicitud_id):
 
 from flask import request
 
+from flask import request, current_app
+import smtplib
+
 @solicitud_bp.post("/test-emailstm")
 def test_email2():
     """
-    Prueba de envío de correo
+    Diagnóstico SMTP
     ---
     tags:
       - Debug
-    parameters:
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - email
-          properties:
-            email:
-              type: string
-              example: correo@gmail.com
-    responses:
-      200:
-        description: Correo enviado correctamente
-      400:
-        description: Correo no proporcionado
-      500:
-        description: Error al enviar el correo
     """
 
     try:
@@ -794,25 +778,54 @@ def test_email2():
         if not email:
             return {"msg": "Debe proporcionar un correo"}, 400
 
-        send_email(
-            to=email,
-            subject="Prueba SMTP AdoptaPatas",
-            body=(
-                "Este es un correo de prueba enviado desde "
-                "la aplicación AdoptaPatas en producción.\n\n"
-                "Si recibes este mensaje, la configuración SMTP "
-                "está funcionando correctamente."
-            )
+        server_host = current_app.config.get("MAIL_SERVER")
+        server_port = current_app.config.get("MAIL_PORT")
+        username = current_app.config.get("MAIL_USERNAME")
+        password = current_app.config.get("MAIL_PASSWORD")
+
+        pasos = []
+
+        pasos.append("Configuración cargada")
+
+        # Timeout explícito para evitar que Gunicorn mate el worker
+        smtp = smtplib.SMTP(
+            server_host,
+            server_port,
+            timeout=10
         )
+
+        pasos.append("Conexión SMTP creada")
+
+        smtp.starttls()
+        pasos.append("TLS iniciado")
+
+        smtp.login(username, password)
+        pasos.append("Login exitoso")
+
+        smtp.sendmail(
+            username,
+            email,
+            f"""Subject: Prueba SMTP
+
+Este es un correo de prueba enviado desde AdoptaPatas.
+"""
+        )
+
+        pasos.append("Correo enviado")
+
+        smtp.quit()
 
         return {
             "ok": True,
-            "msg": f"Correo enviado a {email}"
+            "pasos": pasos
         }, 200
 
     except Exception as e:
         return {
             "ok": False,
             "tipo_error": type(e).__name__,
-            "detalle": str(e)
+            "detalle": str(e),
+            "mail_server": current_app.config.get("MAIL_SERVER"),
+            "mail_port": current_app.config.get("MAIL_PORT"),
+            "mail_username": current_app.config.get("MAIL_USERNAME"),
         }, 500
