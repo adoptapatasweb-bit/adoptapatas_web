@@ -154,7 +154,6 @@ def actualizar_mi_perfil():
         "usuario": usuario.to_dict()
     }), 200
 
-
 @auth_bp.post("/forgot-password")
 def forgot_password():
     """
@@ -176,39 +175,38 @@ def forgot_password():
       200:
         description: Respuesta genérica (si existe el correo, se envían instrucciones)
     """
+
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
 
     generic = {"msg": "Si el correo existe, enviaremos instrucciones."}
+
     if not email:
         return jsonify(generic), 200
 
     user = Usuario.query.filter_by(email=email).first()
+
     if not user:
         return jsonify(generic), 200
 
     token = generate_reset_token(user.id, user.password)
 
-    frontend_base = current_app.config.get("FRONTEND_BASE_URL", "http://localhost:5173")
+    frontend_base = current_app.config.get(
+        "FRONTEND_BASE_URL",
+        "https://adoptapatas.vercel.app"
+    )
+
     link = f"{frontend_base}/ResetPassword?token={token}"
 
-    try:
-        msg = Message(
-            subject="Recuperación de contraseña - Adoptapatas",
-            recipients=[user.email],
-            body=(
-                f"Hola {user.nombre},\n\n"
-                f"Para restablecer tu contraseña abre este enlace (expira en 30 minutos):\n{link}\n\n"
-                f"Si no solicitaste esto, ignora el correo."
-            ),
-        )
-        mail.send(msg)
-    except Exception:
-        pass
+    # Simulación de envío de correo
+    current_app.logger.info(
+        f"[RESET PASSWORD] Usuario={user.email} Link={link}"
+    )
 
-    return jsonify(generic), 200
-
-
+    return jsonify({
+        "msg": "Si el correo existe, enviaremos instrucciones.",
+        "debug_reset_link": link
+    }), 200
 @auth_bp.get("/reset-password")
 def reset_password_form():
     """
