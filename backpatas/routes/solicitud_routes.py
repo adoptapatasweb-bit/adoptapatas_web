@@ -758,6 +758,9 @@ from flask import request
 from flask import request, current_app
 import smtplib
 
+from flask import current_app
+import smtplib
+
 @solicitud_bp.post("/test-emailstm")
 def test_email2():
     """
@@ -765,18 +768,15 @@ def test_email2():
     ---
     tags:
       - Debug
+    responses:
+      200:
+        description: Correo enviado correctamente
+      500:
+        description: Error SMTP
     """
 
     try:
-        data = request.get_json()
-
-        if not data:
-            return {"msg": "No se recibió JSON"}, 400
-
-        email = data.get("email")
-
-        if not email:
-            return {"msg": "Debe proporcionar un correo"}, 400
+        email = "erika222.cftr@gmail.com"
 
         server_host = current_app.config.get("MAIL_SERVER")
         server_port = current_app.config.get("MAIL_PORT")
@@ -787,7 +787,6 @@ def test_email2():
 
         pasos.append("Configuración cargada")
 
-        # Timeout explícito para evitar que Gunicorn mate el worker
         smtp = smtplib.SMTP(
             server_host,
             server_port,
@@ -805,9 +804,12 @@ def test_email2():
         smtp.sendmail(
             username,
             email,
-            f"""Subject: Prueba SMTP
+            f"""Subject: Prueba SMTP AdoptaPatas
 
 Este es un correo de prueba enviado desde AdoptaPatas.
+
+Servidor: {server_host}
+Usuario SMTP: {username}
 """
         )
 
@@ -817,6 +819,7 @@ Este es un correo de prueba enviado desde AdoptaPatas.
 
         return {
             "ok": True,
+            "destinatario": email,
             "pasos": pasos
         }, 200
 
