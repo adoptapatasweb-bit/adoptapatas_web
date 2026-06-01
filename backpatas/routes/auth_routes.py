@@ -196,7 +196,7 @@ def forgot_password():
         "https://adoptapatas.vercel.app"
     )
 
-    link = f"{frontend_base}/ResetPassword?token={token}"
+    link = f"{frontend_base}/reset-password?token={token}"
 
     # Simulación de envío de correo
     current_app.logger.info(
