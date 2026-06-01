@@ -751,3 +751,68 @@ def obtener_formulario_solicitud(solicitud_id):
         "solicitud": solicitud.to_dict(),
         "formulario": respuesta.to_dict()
     }), 200
+
+
+from flask import request
+
+@solicitud_bp.post("/test-emailstm")
+def test_email2():
+    """
+    Prueba de envío de correo
+    ---
+    tags:
+      - Debug
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+          properties:
+            email:
+              type: string
+              example: correo@gmail.com
+    responses:
+      200:
+        description: Correo enviado correctamente
+      400:
+        description: Correo no proporcionado
+      500:
+        description: Error al enviar el correo
+    """
+
+    try:
+        data = request.get_json()
+
+        if not data:
+            return {"msg": "No se recibió JSON"}, 400
+
+        email = data.get("email")
+
+        if not email:
+            return {"msg": "Debe proporcionar un correo"}, 400
+
+        send_email(
+            to=email,
+            subject="Prueba SMTP AdoptaPatas",
+            body=(
+                "Este es un correo de prueba enviado desde "
+                "la aplicación AdoptaPatas en producción.\n\n"
+                "Si recibes este mensaje, la configuración SMTP "
+                "está funcionando correctamente."
+            )
+        )
+
+        return {
+            "ok": True,
+            "msg": f"Correo enviado a {email}"
+        }, 200
+
+    except Exception as e:
+        return {
+            "ok": False,
+            "tipo_error": type(e).__name__,
+            "detalle": str(e)
+        }, 500
