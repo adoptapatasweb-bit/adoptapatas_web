@@ -299,39 +299,11 @@ def aprobar_solicitud(solicitud_id):
     Aprobar solicitud (admin o fundación dueña del perro)
     - Cambia estado a APROBADA
     - Rechaza automáticamente otras solicitudes pendientes del mismo perro
-    - Envía correos al aprobado y a los rechazados automáticos
     ---
     tags:
       - Solicitudes
     security:
       - BearerAuth: []
-    parameters:
-      - in: path
-        name: solicitud_id
-        required: true
-        type: integer
-      - in: body
-        name: body
-        required: false
-        schema:
-          type: object
-          properties:
-            motivo:
-              type: string
-              example: "Cumple requisitos"
-    responses:
-      200:
-        description: Solicitud aprobada y otras rechazadas automáticamente
-      401:
-        description: Token inválido o ausente
-      403:
-        description: No autorizado (fundación distinta o rol no permitido)
-      404:
-        description: Solicitud no encontrada
-      409:
-        description: Solo solicitudes pendientes pueden aprobarse
-      500:
-        description: Error aprobando solicitud
     """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
@@ -353,7 +325,7 @@ def aprobar_solicitud(solicitud_id):
             return jsonify({"msg": "No autorizado: solicitud no pertenece a tu fundación"}), 403
 
     data = request.get_json() or {}
-    motivo = data.get("motivo")  # opcional
+    motivo = data.get("motivo")
     ahora = datetime.now()
 
     try:
@@ -402,66 +374,6 @@ def aprobar_solicitud(solicitud_id):
 
         db.session.commit()
 
-        try:
-            perro = Perro.query.get(solicitud.perro_id)
-            nombre_perro = perro.nombre if perro else f"ID {solicitud.perro_id}"
-
-            aprobado_user = Usuario.query.get(solicitud.usuario_id)
-            if aprobado_user and aprobado_user.email:
-                send_email(
-                    to=aprobado_user.email,
-                    subject=f"AdoptaPatas | ¡Tu solicitud ha sido aprobada! 🐾",
-                    body=f"""
-                    ¡Tu solicitud fue aprobada! 🐾
-
-                    Hola {aprobado_user.nombre if hasattr(aprobado_user, "nombre") else "querido adoptante"},
-
-                    Nos complace informarte que tu solicitud de adopción #{solicitud.id} 
-                    para {nombre_perro} ha sido APROBADA.
-
-                    Motivo / observación:
-                    {solicitud.motivo_decision or "Tu perfil fue evaluado positivamente y cumple con las condiciones esperadas para continuar con el proceso de adopción."}
-
-                    Muy pronto recibirás más información sobre los siguientes pasos del proceso.
-                    Te recomendamos estar pendiente de tu correo y de los canales de contacto registrados.
-
-                    Gracias por abrir tu hogar y tu corazón a la adopción responsable.
-
-                    Con cariño,
-                    Equipo AdoptaPatas
-
-                    ---
-                    AdoptaPatas • Conectando hogares con segundas oportunidades
-                    """
-                )
-
-            for s in otras_pendientes:
-                u = Usuario.query.get(s.usuario_id)
-                if u and u.email:
-                    send_email(
-                        to=u.email,
-                        subject=f"AdoptaPatas: Actualización de tu solicitud (#{s.id})",
-                        body=( f"""
-                            Hola {s.usuario_nombre if hasattr(s, "usuario_nombre") else ""},
-
-                            Queremos informarte que tu solicitud de adopción #{s.id} para {nombre_perro} no pudo continuar en el proceso.
-
-                            Esto se debe a que el perrito ya fue asignado a otra solicitud previamente aprobada.
-
-                            Sabemos que puede ser una noticia desalentadora, pero te animamos a seguir explorando nuestro catálogo.
-                            Hay muchos peluditos esperando una oportunidad para encontrar un hogar como el tuyo 🐾
-
-                            Gracias por tu interés en la adopción responsable.
-
-                            Con aprecio,
-                            Equipo AdoptaPatas
-                            """
-                        )
-                    )
-
-        except Exception:
-            pass
-
         return jsonify({
             "msg": "Solicitud aprobada correctamente. Otras pendientes fueron rechazadas automáticamente.",
             "solicitud_aprobada": solicitud.to_dict(),
@@ -488,33 +400,6 @@ def rechazar_solicitud(solicitud_id):
       - Solicitudes
     security:
       - BearerAuth: []
-    parameters:
-      - in: path
-        name: solicitud_id
-        required: true
-        type: integer
-      - in: body
-        name: body
-        required: false
-        schema:
-          type: object
-          properties:
-            motivo:
-              type: string
-              example: "No cumple requisitos"
-    responses:
-      200:
-        description: Solicitud rechazada correctamente
-      401:
-        description: Token inválido o ausente
-      403:
-        description: No autorizado (fundación distinta o rol no permitido)
-      404:
-        description: Solicitud no encontrada
-      409:
-        description: Solo solicitudes pendientes pueden rechazarse
-      500:
-        description: Error rechazando solicitud
     """
     user_id = int(get_jwt_identity())
     rol = get_jwt().get("rol")
@@ -546,23 +431,6 @@ def rechazar_solicitud(solicitud_id):
 
         db.session.commit()
 
-        u = Usuario.query.get(solicitud.usuario_id)
-        perro = Perro.query.get(solicitud.perro_id)
-        nombre_perro = perro.nombre if perro else f"ID {solicitud.perro_id}"
-
-        if u and u.email:
-            send_email(
-                to=u.email,
-                subject=f"AdoptaPatas: Solicitud rechazada (#{solicitud.id})",
-                body=(
-                    f"Hola.\n\n"
-                    f"Tu solicitud #{solicitud.id} para {nombre_perro} fue RECHAZADA.\n\n"
-                    f"Motivo: {motivo or 'No especificado'}\n\n"
-                    f"Puedes postularte a otro peludito desde el catálogo.\n\n"
-                    f"Equipo AdoptaPatas\n"
-                )
-            )
-
         return jsonify({
             "msg": "Solicitud rechazada correctamente",
             "solicitud": solicitud.to_dict()
@@ -571,7 +439,6 @@ def rechazar_solicitud(solicitud_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg": "Error rechazando solicitud", "error": str(e)}), 500
-
 
 # =========================================================
 # GET /solicitudes/historial
